@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "make-sample-pdf": "node scripts/make-sample-pdf.mjs"
+    "make-sample-pdf": "node scripts/make-sample-pdf.mjs",
+    "make-artifact": "node scripts/make-artifact-page.mjs"
   },
   "dependencies": {
     "dexie": "^4.0.8",

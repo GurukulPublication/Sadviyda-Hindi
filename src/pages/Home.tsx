@@ -46,7 +46,6 @@ export default function Home() {
           alt="Sadvidya"
           className="mb-8 w-full max-w-md"
         />
-        <div className="h-24 w-8 rounded-md bg-sand" aria-hidden />
         <h1 className="mt-6 font-heading text-2xl font-semibold">
           Upload your first Flag Report to raise the first bar
         </h1>
