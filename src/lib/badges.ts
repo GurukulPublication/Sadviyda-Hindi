@@ -1,6 +1,7 @@
 /**
- * Milestone badges. Each badge knows how to check itself against the list of
- * scored reports, so adding a new one is a single entry in this array.
+ * Milestone badges, as shown in the design. Each badge knows how to check
+ * itself against the list of scored reports, so adding a new one is a single
+ * entry in this array.
  */
 
 import type { ScoredReport } from '../types'
@@ -9,80 +10,65 @@ import { currentStreak } from './stats'
 export interface Badge {
   id: string
   label: string
-  /** Shown when the badge is still locked. */
+  /** Shown under the badge — what it is, or how to unlock it. */
   hint: string
   earned: boolean
-  icon: string
 }
 
 export function computeBadges(reports: ScoredReport[]): Badge[] {
   const count = reports.length
-  const clean = reports.filter((r) => r.status === 'CLEAN' || r.flags.length === 0)
+  const clean = reports.filter((r) => r.flags.every((f) => f.status !== 'FLAGGED'))
   const streak8 = currentStreak(reports, 8)
-  const noDrift = count > 0 && reports.every((r) => r.flagCounts.meaningDrift === 0)
   const best = count ? Math.max(...reports.map((r) => r.overall)) : 0
-  const lastThree = reports.slice(-3)
-  const improving =
-    lastThree.length === 3 &&
-    lastThree[0].overall < lastThree[1].overall &&
-    lastThree[1].overall < lastThree[2].overall
 
   return [
     {
       id: 'first-report',
       label: 'First Report',
-      hint: 'Upload your first Flag Report.',
+      hint: 'Your first report',
       earned: count >= 1,
-      icon: '🪔',
     },
     {
-      id: 'first-clean',
-      label: 'First Clean Report',
-      hint: 'Get a report with no flags at all.',
-      earned: clean.length >= 1,
-      icon: '✨',
-    },
-    {
-      id: 'five-articles',
-      label: '5 Articles Done',
-      hint: 'Score five articles.',
+      id: 'five-reports',
+      label: 'Five Reports',
+      hint: '5 articles reviewed',
       earned: count >= 5,
-      icon: '📚',
     },
     {
-      id: 'ten-articles',
-      label: '10 Articles Done',
-      hint: 'Score ten articles.',
-      earned: count >= 10,
-      icon: '🏵️',
-    },
-    {
-      id: 'three-above-8',
-      label: '3 in a Row Above 8',
-      hint: 'Score 8 or higher three articles running.',
+      id: 'steady-climb',
+      label: 'Steady Climb',
+      hint: '3 in a row at 8+',
       earned: streak8 >= 3,
-      icon: '🔥',
     },
     {
-      id: 'zero-drift',
-      label: 'Zero Meaning Drift',
-      hint: 'Finish every article so far with no Meaning Drift flags.',
-      earned: noDrift,
-      icon: '🎯',
-    },
-    {
-      id: 'nine-plus',
-      label: 'Written in Hindi',
-      hint: 'Reach an overall score of 9 or more on one article.',
+      id: 'golden-score',
+      label: 'Golden Score',
+      hint: 'First score of 9+',
       earned: best >= 9,
-      icon: '🌸',
     },
     {
-      id: 'improving',
-      label: 'Three Steps Up',
-      hint: 'Improve your score three articles in a row.',
-      earned: improving,
-      icon: '📈',
+      id: 'full-row',
+      label: 'Full Row',
+      hint: '12 articles reviewed',
+      earned: count >= 12,
+    },
+    {
+      id: 'clean-report',
+      label: 'Clean Report',
+      hint: 'An article with no flags',
+      earned: clean.length >= 1,
+    },
+    {
+      id: 'perfect-ten',
+      label: 'Perfect Ten',
+      hint: 'A score of 10',
+      earned: best >= 10,
+    },
+    {
+      id: 'unbroken',
+      label: 'Unbroken',
+      hint: '10 in a row at 8+',
+      earned: streak8 >= 10,
     },
   ]
 }

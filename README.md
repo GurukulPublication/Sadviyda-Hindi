@@ -58,12 +58,17 @@ Parameter score = `max(0, 10 − flags × deduction)`.
 Overall score = weighted average of the four, rounded to one decimal.
 A clean report scores 10.0 everywhere.
 
-Grades: 9–10 "Written in Hindi" · 7.5–8.9 "Almost there" · 6–7.4 "Needs polish" ·
-below 6 "Reads like a translation".
+Grades follow the flame scale: 9–10 "Radiant flame" · 7.5–8.9 "Bright and steady" ·
+6–7.4 "Burning low" · below 6 "Needs more oil". (The original wording from the
+brief is kept in a comment there if you prefer it.)
 
-**To change any of this, edit one file: `src/config/scoring.ts`.** The deductions,
-weights, grade labels, target line, colours and the tips shown on the article page
-all live there, and the whole dashboard follows automatically.
+**Two files control everything you are likely to want to change:**
+
+- `src/config/scoring.ts` — deductions, weights, grade labels, the target line,
+  the tips, and the "parameter key" wording shown on the Home page.
+- `src/config/theme.ts` — every colour and font in the dashboard, including the
+  score-bar bands and the chart colours. `tailwind.config.ts` reads this file, so
+  there is only ever one list of colours.
 
 ---
 
@@ -106,14 +111,19 @@ you can type the report in by hand.
 
 ## The pages
 
-- **Home — Progress Garden (`/`)**: a row of animated diyas, one per article
-  (flame size and brightness follow the score); four stat cards; the score
-  journey, parameter radar and flags-by-parameter charts; "your common mistakes"
-  with repeat offenders and re-flag count; and milestone badges.
-- **Articles (`/articles`)**: searchable, sortable cards. Click one for the full
-  report card, with the four parameter scores, what went well, what to work on,
-  every flag grouped by parameter, and Edit / Delete / Export buttons.
-- **Add Report (`/add`)**: drag and drop the PDF, review, save.
+- **Home — My Translation Journey (`/`)**: the Sadvidya masthead and your running
+  average; a row of score bars on a dark panel, one per article, coloured green /
+  yellow / orange by score (hover for the title, click to open it); four stat
+  cards; the score-journey line with its 8.0 target; the four-parameter radar
+  (all-time average against your latest article); the **parameter key**, which
+  explains each parameter with a worked example; **flags per month**; and the
+  eight milestone badges.
+- **Articles (`/articles`)**: grouped by month, with search, a newest/oldest
+  toggle and the language filter. Click one for the full report card — the four
+  parameter scores, what went well, what to work on, every flag grouped by
+  parameter, and Edit / Delete / Export buttons.
+- **Add Report (`/add`)**: drag and drop the PDF, check the flags in the review
+  table, save.
 
 The ⚙ button in the top bar opens settings: export a JSON backup, import one,
 load or remove demo data, set the language filter (All / Hindi / Gujarati), or
@@ -125,13 +135,15 @@ clear everything.
 
 ```
 index.html                  the page shell and Google Fonts
+public/                     the Gurukul emblem, the SADVIDYA wordmark, favicon
 src/
   main.tsx                  starts React
   App.tsx                   top navigation and the three routes
   index.css                 Tailwind plus the card/button/diya styles
   types.ts                  what a Report and a Flag are
   config/
-    scoring.ts              ALL deductions, weights, grades, colours, tips
+    scoring.ts              ALL deductions, weights, grades, tips, parameter key
+    theme.ts                ALL colours and fonts (Tailwind reads this too)
   db/
     db.ts                   IndexedDB storage via Dexie
   lib/
@@ -147,11 +159,11 @@ src/
   context/
     AppContext.tsx          shared report list and language filter
   components/
-    Diya.tsx                the animated oil lamp
+    ScoreBar.tsx            the score bar — one per article
+    Diya.tsx                the little lamp inside a milestone badge
     Charts.tsx              the three Recharts charts
     FlagTable.tsx           the editable review table
     SettingsDrawer.tsx      settings, backup, demo data
-    StatCard.tsx            a stat card
     ScoreInfo.tsx           "How is this calculated?" popover
   pages/
     Home.tsx                Progress Garden
@@ -160,7 +172,23 @@ src/
     AddReport.tsx           upload -> review -> save
 scripts/
   make-sample-pdf.mjs       generates a test PDF from the template
+tailwind.config.ts          imports the palette from src/config/theme.ts
 ```
+
+---
+
+## Design
+
+The dashboard follows the Sadvidya / Shree Swaminarayan Gurukul design: a warm
+cream page, the Gurukul red as the primary accent, Poppins for headings and
+numbers, Lora for prose, and Noto Sans Devanagari for Hindi and Gujarati.
+
+Scores are shown as bars on the flame scale — green at 9+, yellow at 8+, orange
+at 7+, and a burnt amber below that. Those bands live in `scoreColor()` in
+`src/config/theme.ts`.
+
+The emblem and wordmark in `public/` came from the design file and were scaled
+down for the web (3.3 MB of original artwork down to about 300 KB).
 
 ---
 

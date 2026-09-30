@@ -208,3 +208,58 @@ export function weakestOf(report: ScoredReport): ParameterKey | null {
       report.flagCounts[b.key] - report.flagCounts[a.key],
   )[0].key
 }
+
+export interface MonthBucket {
+  /** Sort key, e.g. "2026-01". */
+  key: string
+  /** Short month name, e.g. "Jan". */
+  month: string
+  /** Four-digit year, shown only when it changes. */
+  year: string
+  reports: ScoredReport[]
+  /** FLAGGED items in that month, per parameter. */
+  flags: Record<ParameterKey, number>
+  /** Total FLAGGED items in that month. */
+  total: number
+}
+
+const MONTH_NAMES = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+]
+
+/**
+ * Group reports by calendar month, oldest first. Used by the "flags per month"
+ * chart and by the month headings on the Articles page.
+ */
+export function byMonth(reports: ScoredReport[]): MonthBucket[] {
+  const map = new Map<string, MonthBucket>()
+  for (const r of reports) {
+    const key = r.date.slice(0, 7) // YYYY-MM
+    const monthIndex = Number(r.date.slice(5, 7)) - 1
+    const bucket =
+      map.get(key) ??
+      {
+        key,
+        month: MONTH_NAMES[monthIndex] ?? '',
+        year: r.date.slice(0, 4),
+        reports: [],
+        flags: emptyCounts(),
+        total: 0,
+      }
+    bucket.reports.push(r)
+    for (const p of PARAMETERS) {
+      bucket.flags[p.key] += r.flagCounts[p.key]
+      bucket.total += r.flagCounts[p.key]
+    }
+    map.set(key, bucket)
+  }
+  return [...map.values()].sort((a, b) => a.key.localeCompare(b.key))
+}
+
+/** The long month name for a heading, e.g. "September 2026". */
+export function monthHeading(bucket: MonthBucket): string {
+  const full = new Date(`${bucket.key}-01T00:00:00`)
+  if (Number.isNaN(full.getTime())) return `${bucket.month} ${bucket.year}`
+  return full.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+}

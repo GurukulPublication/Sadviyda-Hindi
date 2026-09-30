@@ -27,8 +27,8 @@ export default function ScoreInfo({ className = '' }: { className?: string }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label="How is this calculated?"
-        className="h-5 w-5 rounded-full border border-ink/20 text-[11px] font-heading
-                   text-ink/60 hover:bg-sand hover:text-ink transition-colors"
+        className="h-5 w-5 rounded-full border border-border text-[11px] font-heading
+                   text-olive transition-colors hover:bg-sand hover:text-ink"
       >
         ?
       </button>
@@ -48,7 +48,7 @@ export default function ScoreInfo({ className = '' }: { className?: string }) {
           </p>
           <table className="w-full mb-2">
             <thead>
-              <tr className="text-ink/60">
+              <tr className="text-olive">
                 <th className="text-left font-heading font-medium">Parameter</th>
                 <th className="text-right font-heading font-medium">Per flag</th>
                 <th className="text-right font-heading font-medium">Weight</th>
@@ -71,7 +71,7 @@ export default function ScoreInfo({ className = '' }: { className?: string }) {
             decimal. A clean report scores 10.0. The target line on the chart is{' '}
             {TARGET_SCORE.toFixed(1)}.
           </p>
-          <p className="text-ink/60">
+          <p className="text-olive">
             {GRADES.map((g) => `${g.min}+ ${g.label}`).join(' · ')}
           </p>
         </div>

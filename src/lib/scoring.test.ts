@@ -96,7 +96,7 @@ describe('scoreReport', () => {
     const scored = scoreReport(report([]))
     expect(scored.overall).toBe(10)
     expect(scored.scores.meaningDrift).toBe(10)
-    expect(scored.grade).toBe('Written in Hindi')
+    expect(scored.grade).toBe('Radiant flame')
   })
 
   it('ignores UNSURE items when scoring but still counts them', () => {
@@ -125,7 +125,7 @@ describe('scoreReport', () => {
     expect(scored.scores.termConsistency).toBe(10) // unsure only
     // 8x.35 + 8.5x.25 + 8x.25 + 10x.15 = 2.8 + 2.125 + 2 + 1.5 = 8.425 -> 8.4
     expect(scored.overall).toBe(8.4)
-    expect(scored.grade).toBe('Almost there')
+    expect(scored.grade).toBe('Bright and steady')
   })
 })
 
@@ -143,14 +143,14 @@ describe('countFlags', () => {
 
 describe('gradeFor', () => {
   it('uses the configured bands', () => {
-    expect(gradeFor(10)).toBe('Written in Hindi')
-    expect(gradeFor(9)).toBe('Written in Hindi')
-    expect(gradeFor(8.9)).toBe('Almost there')
-    expect(gradeFor(7.5)).toBe('Almost there')
-    expect(gradeFor(7.4)).toBe('Needs polish')
-    expect(gradeFor(6)).toBe('Needs polish')
-    expect(gradeFor(5.9)).toBe('Reads like a translation')
-    expect(gradeFor(0)).toBe('Reads like a translation')
+    expect(gradeFor(10)).toBe('Radiant flame')
+    expect(gradeFor(9)).toBe('Radiant flame')
+    expect(gradeFor(8.9)).toBe('Bright and steady')
+    expect(gradeFor(7.5)).toBe('Bright and steady')
+    expect(gradeFor(7.4)).toBe('Burning low')
+    expect(gradeFor(6)).toBe('Burning low')
+    expect(gradeFor(5.9)).toBe('Needs more oil')
+    expect(gradeFor(0)).toBe('Needs more oil')
   })
 })
 

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- A small diya, matching the dashboard's palette. -->
+  <rect width="64" height="64" rx="12" fill="#F7F3EA" />
+  <ellipse cx="32" cy="26" rx="6" ry="9" fill="#FFC861" />
+  <ellipse cx="32" cy="28" rx="2.5" ry="4.5" fill="#FFF6DE" />
+  <rect x="31" y="35" width="2" height="5" fill="#5A4634" />
+  <path d="M10 40 Q32 36 54 40 Q48 54 32 56 Q16 54 10 40 Z" fill="#C4623F" />
+  <ellipse cx="32" cy="40" rx="21" ry="3" fill="#E8A96B" />
+</svg>

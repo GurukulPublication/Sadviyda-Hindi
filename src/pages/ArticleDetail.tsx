@@ -1,19 +1,19 @@
 /**
  * ARTICLE (/articles/:id)
  *
- * A clean report card in simple English: overall score, the four parameter
- * cards, what went well, what to work on, and the full flag list.
+ * The report card: the overall score, the four parameter cards, what went
+ * well, what to work on, and every flag grouped by parameter.
  */
 
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import Diya from '../components/Diya'
+import ScoreBar from '../components/ScoreBar'
 import ScoreInfo from '../components/ScoreInfo'
 import FlagTable from '../components/FlagTable'
 import { downloadJson } from '../components/SettingsDrawer'
 import { useApp } from '../context/AppContext'
-import { PARAMETERS, PARAM_BY_KEY, MAX_SCORE } from '../config/scoring'
+import { MAX_SCORE, PARAMETERS, PARAM_BY_KEY } from '../config/scoring'
+import { palette, scoreColor } from '../config/theme'
 import { deleteReport, updateReport } from '../db/db'
 import { averageByParameter, cleanParameters, weakestOf } from '../lib/stats'
 import { scoreReport } from '../lib/scoring'
@@ -36,10 +36,9 @@ export default function ArticleDetail() {
 
   const averages = useMemo(() => averageByParameter(allReports), [allReports])
 
-  // Still reading from storage — don't flash "not found" on a refresh.
   if (!loaded) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center text-sm text-ink/50">
+      <div className="flex min-h-[40vh] items-center justify-center text-sm text-olive">
         Opening the report…
       </div>
     )
@@ -47,9 +46,11 @@ export default function ArticleDetail() {
 
   if (!report) {
     return (
-      <div className="card p-8 text-center">
-        <p className="font-heading text-lg">That article could not be found.</p>
-        <Link to="/articles" className="btn-ghost mt-4">
+      <div className="card p-10 text-center">
+        <p className="font-heading text-lg font-semibold">
+          That article could not be found.
+        </p>
+        <Link to="/articles" className="btn-ghost mt-5">
           Back to articles
         </Link>
       </div>
@@ -58,6 +59,7 @@ export default function ArticleDetail() {
 
   const clean = cleanParameters(report)
   const weakest = weakestOf(report)
+  const flaggedCount = report.flags.filter((f) => f.status === 'FLAGGED').length
 
   function startEditing() {
     setDraftFlags(report!.flags.map((f) => ({ ...f })))
@@ -92,7 +94,7 @@ export default function ArticleDetail() {
     )
   }
 
-  // While editing, show the same table used on the Add page.
+  // --- Editing ------------------------------------------------------------
   if (editing) {
     const preview = scoreReport({
       ...report,
@@ -103,29 +105,29 @@ export default function ArticleDetail() {
     })
     return (
       <div className="space-y-6">
-        <h1 className="font-heading text-2xl font-semibold">Edit report</h1>
-        <div className="card grid gap-4 p-4 sm:grid-cols-3">
-          <label className="text-xs text-ink/60">
+        <h1 className="font-heading text-2xl font-bold">Edit report</h1>
+        <div className="card grid gap-4 p-5 sm:grid-cols-3">
+          <label className="label">
             Article title
             <input
-              className="input mt-1"
+              className="input mt-1.5 font-body normal-case tracking-normal"
               value={draftTitle}
               onChange={(e) => setDraftTitle(e.target.value)}
             />
           </label>
-          <label className="text-xs text-ink/60">
+          <label className="label">
             Date
             <input
               type="date"
-              className="input mt-1"
+              className="input mt-1.5 font-body normal-case tracking-normal"
               value={draftDate}
               onChange={(e) => setDraftDate(e.target.value)}
             />
           </label>
-          <label className="text-xs text-ink/60">
+          <label className="label">
             Language
             <select
-              className="input mt-1"
+              className="select mt-1.5 normal-case tracking-normal"
               value={draftLanguage}
               onChange={(e) => setDraftLanguage(e.target.value as Language)}
             >
@@ -134,13 +136,15 @@ export default function ArticleDetail() {
             </select>
           </label>
         </div>
-        <p className="text-sm text-ink/60">
+        <p className="text-sm text-olive">
           Score with these changes:{' '}
-          <b className="text-terracotta">{preview.overall.toFixed(1)}/10</b> ·{' '}
-          {preview.grade}
+          <b style={{ color: scoreColor(preview.overall) }}>
+            {preview.overall.toFixed(1)}/10
+          </b>{' '}
+          · {preview.grade}
         </p>
         <FlagTable flags={draftFlags} onChange={setDraftFlags} />
-        <div className="flex gap-3 border-t border-ink/10 pt-4">
+        <div className="flex gap-3 border-t border-border pt-5">
           <button className="btn-primary" onClick={saveEdits}>
             Save changes
           </button>
@@ -153,151 +157,177 @@ export default function ArticleDetail() {
   }
 
   return (
-    <div className="relative space-y-8">
-      <div className="section-number" aria-hidden>
-        02
+    <div className="space-y-7">
+      <div className="flex items-center gap-4">
+        <Link to="/" className="btn-ghost">
+          ← Back to Home
+        </Link>
+        <Link to="/articles" className="font-heading text-sm text-olive hover:text-ink">
+          All articles
+        </Link>
       </div>
 
-      {/* Header */}
-      <header className="card flex flex-col gap-6 p-6 sm:flex-row sm:items-center">
-        <Diya score={report.overall} size={96} />
+      {/* ------------------------------------------------------------ header */}
+      <header className="flex flex-wrap items-center gap-5 border-b border-border pb-6">
+        <ScoreBar
+          score={report.overall}
+          tone="light"
+          height={100}
+          width={26}
+        />
         <div className="min-w-0 flex-1">
-          <p className="font-heading text-xs uppercase tracking-wider text-ink/50">
-            {formatDate(report.date)} · {report.language}
-            {report.isDemo && ' · Demo'}
+          <p className="flex flex-wrap items-center gap-2.5">
+            <span className="text-sm text-olive">{formatMonth(report.date)}</span>
+            <span
+              className={`chip ${
+                report.language === 'Hindi'
+                  ? 'bg-tintBlue text-blue'
+                  : 'bg-tintPeach text-[#9A5700]'
+              }`}
+            >
+              {report.language}
+            </span>
+            {report.isDemo && <span className="chip bg-sand text-olive">Demo</span>}
           </p>
-          <h1 className="mt-1 font-heading text-2xl font-semibold sm:text-3xl">
+          <h1 className="mt-1 font-heading text-[clamp(24px,3vw,38px)] font-bold leading-tight">
             {report.title}
           </h1>
-          <p className="mt-1 text-sm text-ink/60">
-            {report.flags.filter((f) => f.status === 'FLAGGED').length} flagged ·{' '}
-            {report.flags.filter((f) => f.status === 'UNSURE').length} unsure
-          </p>
         </div>
-        <div className="text-center sm:text-right">
-          <div className="flex items-center justify-center gap-2 sm:justify-end">
-            <span className="font-heading text-5xl font-bold text-terracotta">
+        <div className="text-right">
+          <div className="flex items-baseline justify-end gap-1">
+            <span
+              className="font-heading text-[48px] font-bold leading-none tabular-nums"
+              style={{ color: scoreColor(report.overall) }}
+            >
               {report.overall.toFixed(1)}
             </span>
-            <span className="font-heading text-lg text-ink/40">/10</span>
-            <ScoreInfo />
+            <span className="font-heading text-lg text-olive">/10</span>
+            <ScoreInfo className="ml-1" />
           </div>
-          <p className="mt-1 font-heading text-sm text-olive">{report.grade}</p>
+          <p className="mt-1 font-heading text-sm font-semibold">{report.grade}</p>
         </div>
       </header>
 
-      {/* The four parameter cards */}
-      <section>
-        <h2 className="mb-3 font-heading text-lg font-semibold">
-          The four parameters
-        </h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {PARAMETERS.map((p) => {
-            const score = report.scores[p.key]
-            const flags = report.flagCounts[p.key]
-            const unsure = report.unsureCounts[p.key]
-            const avg = averages[p.key]
-            const diff = Number((score - avg).toFixed(1))
-            return (
-              <div key={p.key} className="card p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-heading font-semibold">{p.label}</h3>
-                    <p className="mt-0.5 text-xs text-ink/60">{p.meaning}</p>
-                  </div>
-                  <div className="text-right">
-                    <span
-                      className="font-heading text-2xl font-semibold"
-                      style={{ color: p.color }}
-                    >
-                      {score.toFixed(1)}
-                    </span>
-                    <span className="text-xs text-ink/40">/10</span>
-                  </div>
-                </div>
-
-                {/* Progress bar */}
-                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-sand">
-                  <motion.div
-                    className="h-full rounded-full"
-                    style={{ background: p.color }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(score / MAX_SCORE) * 100}%` }}
-                    transition={{ duration: 0.6, ease: 'easeOut' }}
-                  />
-                </div>
-
-                <p className="mt-2 text-xs text-ink/70">
-                  {flags === 0
-                    ? `No flags here — nothing was deducted.`
-                    : `${flags} flag${flags === 1 ? '' : 's'} × ${p.deduction.toFixed(1)} point${p.deduction === 1 ? '' : 's'} = −${(flags * p.deduction).toFixed(1)}.`}
-                  {unsure > 0 &&
-                    ` ${unsure} unsure item${unsure === 1 ? '' : 's'} (not counted).`}
-                </p>
-
-                {allReports.length > 1 && (
-                  <p className="mt-1 text-xs text-ink/50">
-                    {diff === 0
-                      ? 'Exactly your average.'
-                      : `${diff > 0 ? '↑' : '↓'} ${Math.abs(diff).toFixed(1)} compared with your average of ${avg.toFixed(1)}.`}
-                  </p>
-                )}
+      {/* -------------------------------------------------- parameter cards */}
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {PARAMETERS.map((p) => {
+          const score = report.scores[p.key]
+          const flags = report.flagCounts[p.key]
+          const unsure = report.unsureCounts[p.key]
+          const diff = Number((score - averages[p.key]).toFixed(1))
+          return (
+            <div key={p.key} className="card p-5">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-heading text-sm font-semibold">{p.label}</h3>
+                <span className="whitespace-nowrap text-xs text-olive">
+                  {flags} flag{flags === 1 ? '' : 's'}
+                </span>
               </div>
-            )
-          })}
-        </div>
+
+              <div className="mt-2 flex items-baseline gap-1">
+                <span className="font-heading text-[30px] font-bold leading-none tabular-nums">
+                  {score.toFixed(1)}
+                </span>
+                <span className="font-heading text-sm text-olive">/10</span>
+              </div>
+
+              <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-sand">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${(score / MAX_SCORE) * 100}%`,
+                    background: scoreColor(score),
+                  }}
+                />
+              </div>
+
+              <p className="mt-3 text-sm leading-snug">
+                {flags === 0 ? p.guide.checks : plainResult(p.key, flags)}
+              </p>
+              {unsure > 0 && (
+                <p className="mt-1 text-xs text-olive">
+                  {unsure} unsure item{unsure === 1 ? '' : 's'}, not counted.
+                </p>
+              )}
+
+              {allReports.length > 1 && (
+                <p
+                  className="mt-3 font-heading text-[13px]"
+                  style={{ color: diff >= 0 ? palette.greenDark : palette.brand }}
+                >
+                  {diff === 0
+                    ? 'exactly your average'
+                    : `${diff > 0 ? '↑' : '↓'} ${Math.abs(diff).toFixed(1)} ${
+                        diff > 0 ? 'above' : 'below'
+                      } your average`}
+                </p>
+              )}
+            </div>
+          )
+        })}
       </section>
 
-      {/* Encouragement + one thing to work on */}
+      {/* ------------------------------------- what went well / to work on */}
       <section className="grid gap-4 sm:grid-cols-2">
-        <div className="card p-5">
-          <h3 className="font-heading font-semibold">What went well</h3>
-          {clean.length === 0 ? (
-            <p className="mt-2 text-sm text-ink/70">
-              Every parameter picked up at least one flag this time. That happens
-              — the flag list below is the whole map of what to fix.
-            </p>
-          ) : (
-            <ul className="mt-2 space-y-1 text-sm text-ink/70">
-              {clean.map((key) => (
-                <li key={key}>
-                  ✓ <b>{PARAM_BY_KEY[key].label}</b> — clean. {praise(key)}
+        <div className="rounded-card border border-border bg-tintGreen p-5">
+          <h3 className="font-heading font-semibold text-greenDark">
+            What went well
+          </h3>
+          <ul className="mt-3 space-y-2">
+            {clean.length === 0 ? (
+              <li className="text-[15px] leading-relaxed">
+                Every parameter picked up at least one flag this time. The list
+                below is the whole map of what to fix.
+              </li>
+            ) : (
+              clean.map((key) => (
+                <li key={key} className="flex gap-2.5 text-[15px] leading-relaxed">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-green" />
+                  {praise(key)}
                 </li>
-              ))}
-            </ul>
-          )}
+              ))
+            )}
+          </ul>
         </div>
 
-        <div className="card p-5">
-          <h3 className="font-heading font-semibold">What to work on</h3>
-          {weakest === null ? (
-            <p className="mt-2 text-sm text-ink/70">
-              Nothing to fix — this report is clean. Keep doing exactly what you
-              did here.
-            </p>
-          ) : (
-            <>
-              <p className="mt-2 text-sm text-ink/70">
-                <b>{PARAM_BY_KEY[weakest].label}</b> is the weakest here, with{' '}
-                {report.flagCounts[weakest]} flag
-                {report.flagCounts[weakest] === 1 ? '' : 's'}.
-              </p>
-              <p className="mt-2 rounded-lg bg-sage/50 p-3 text-sm">
-                <b>Try this:</b> {PARAM_BY_KEY[weakest].tip}
-              </p>
-            </>
-          )}
+        <div className="rounded-card border border-border bg-tintPeach p-5">
+          <h3 className="font-heading font-semibold text-[#9A5700]">
+            What to work on
+          </h3>
+          <ul className="mt-3 space-y-2">
+            {weakest === null ? (
+              <li className="text-[15px] leading-relaxed">
+                Nothing to fix — this report is clean. Keep doing exactly what
+                you did here.
+              </li>
+            ) : (
+              [
+                `Give ${PARAM_BY_KEY[weakest].label} a second read before sending.`,
+                PARAM_BY_KEY[weakest].guide.checks,
+                PARAM_BY_KEY[weakest].tip,
+              ].map((line) => (
+                <li key={line} className="flex gap-2.5 text-[15px] leading-relaxed">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-orange" />
+                  {line}
+                </li>
+              ))
+            )}
+          </ul>
         </div>
       </section>
 
-      {/* Flag list, grouped by parameter */}
+      {/* ------------------------------------------------------------- flags */}
       <section>
-        <h2 className="mb-3 font-heading text-lg font-semibold">
-          Every flag in this report
-        </h2>
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-heading text-xl font-bold">Flags</h2>
+          <span className="aside text-sm">
+            {flaggedCount} line{flaggedCount === 1 ? '' : 's'} to look at again
+          </span>
+        </div>
+
         {report.flags.length === 0 ? (
-          <p className="card p-6 text-sm text-ink/70">
-            No flags at all. This one was clean. 🪔
+          <p className="card p-8 text-center aside">
+            No flags at all. This one was clean.
           </p>
         ) : (
           <div className="space-y-6">
@@ -306,19 +336,54 @@ export default function ArticleDetail() {
               if (!items.length) return null
               return (
                 <div key={p.key}>
-                  <h3
-                    className="mb-2 font-heading text-sm font-semibold uppercase tracking-wider"
-                    style={{ color: p.color }}
-                  >
-                    {p.label} ({items.length})
+                  <h3 className="mb-2.5 flex items-center gap-2.5">
+                    <span
+                      className="h-3 w-3 rounded-sm"
+                      style={{ background: p.color }}
+                      aria-hidden
+                    />
+                    <span className="font-heading text-sm font-semibold">
+                      {p.label}
+                    </span>
+                    <span className="text-xs text-olive">
+                      {items.length} flag{items.length === 1 ? '' : 's'}
+                    </span>
                   </h3>
+
                   <div className="space-y-3">
                     {items.map((flag) => (
-                      <div key={flag.id} className="card p-4">
-                        <div className="mb-2 flex flex-wrap items-center gap-2">
-                          <span className="font-heading text-xs text-ink/50">
-                            Line {flag.line ?? '—'}
+                      <article key={flag.id} className="card p-5">
+                        <div className="flex gap-4">
+                          <span className="font-heading text-xs text-olive">
+                            L{flag.line ?? '—'}
                           </span>
+                          <div className="grid flex-1 gap-4 sm:grid-cols-2">
+                            <div>
+                              <span className="label text-[10px]">English</span>
+                              <p className="mt-1 text-[15px] leading-relaxed">
+                                {flag.english || <i className="text-muted">—</i>}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="label text-[10px]">
+                                {report.language}
+                              </span>
+                              <p className="deva mt-1 text-[15px] leading-relaxed">
+                                {flag.hindi || <i className="text-muted">—</i>}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-dashed border-border pt-3">
+                          <p className="aside min-w-0 flex-1 text-sm leading-relaxed">
+                            {flag.reason}
+                            {flag.term && (
+                              <span className="ml-2 chip bg-sand not-italic text-olive">
+                                {flag.term}
+                              </span>
+                            )}
+                          </p>
                           <span
                             className={
                               flag.status === 'FLAGGED'
@@ -328,29 +393,8 @@ export default function ArticleDetail() {
                           >
                             {flag.status}
                           </span>
-                          {flag.term && (
-                            <span className="rounded-full bg-peach px-2 py-0.5 text-[11px]">
-                              {flag.term}
-                            </span>
-                          )}
                         </div>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <p className="rounded-lg bg-sand/50 p-3 text-sm">
-                            {flag.english || <i className="text-ink/40">—</i>}
-                          </p>
-                          <p className="deva rounded-lg bg-sage/40 p-3 text-sm">
-                            {flag.hindi || <i className="text-ink/40">—</i>}
-                          </p>
-                        </div>
-                        {flag.reason && (
-                          <p className="mt-2 text-sm text-ink/70">
-                            <b className="font-heading text-xs uppercase tracking-wider text-ink/50">
-                              Why:{' '}
-                            </b>
-                            {flag.reason}
-                          </p>
-                        )}
-                      </div>
+                      </article>
                     ))}
                   </div>
                 </div>
@@ -360,8 +404,8 @@ export default function ArticleDetail() {
         )}
       </section>
 
-      {/* Actions */}
-      <section className="flex flex-wrap gap-3 border-t border-ink/10 pt-6">
+      {/* ----------------------------------------------------------- actions */}
+      <section className="flex flex-wrap gap-3 border-t border-border pt-6">
         <button className="btn-ghost" onClick={startEditing}>
           Edit report
         </button>
@@ -369,13 +413,16 @@ export default function ArticleDetail() {
           Export as JSON
         </button>
         {!confirmDelete ? (
-          <button className="btn-danger" onClick={() => setConfirmDelete(true)}>
+          <button
+            className="btn border border-brand/40 text-brand hover:bg-brand/5"
+            onClick={() => setConfirmDelete(true)}
+          >
             Delete
           </button>
         ) : (
-          <span className="flex items-center gap-2 text-sm">
+          <span className="flex flex-wrap items-center gap-2 text-sm">
             Delete “{report.title}” for good?
-            <button className="btn-danger" onClick={doDelete}>
+            <button className="btn-primary" onClick={doDelete}>
               Yes, delete
             </button>
             <button className="btn-ghost" onClick={() => setConfirmDelete(false)}>
@@ -383,36 +430,45 @@ export default function ArticleDetail() {
             </button>
           </span>
         )}
-        <Link to="/articles" className="btn-ghost ml-auto">
-          All articles
-        </Link>
       </section>
     </div>
   )
 }
 
-/** A short compliment for a clean parameter. */
-function praise(key: ParameterKey): string {
+/** One plain sentence about a parameter that picked up flags. */
+function plainResult(key: ParameterKey, flags: number): string {
+  const n = `${flags} line${flags === 1 ? '' : 's'}`
   switch (key) {
     case 'meaningDrift':
-      return 'Every line landed on the same idea as the English.'
+      return `${n} landed on a nearby idea instead of the English one.`
     case 'naturalPhrasing':
-      return 'It reads as Hindi, not as English wearing Hindi clothes.'
+      return `${n} still follow English word order.`
     case 'termConsistency':
-      return 'Names and terms were handled the same way throughout.'
+      return `${n} spell a key term differently from the rest.`
     case 'voiceConviction':
-      return 'Your voice carried across intact.'
+      return `${n} lost some of the conviction of the original.`
   }
 }
 
-export function formatDate(iso: string): string {
+/** A short compliment for a parameter with no flags. */
+function praise(key: ParameterKey): string {
+  switch (key) {
+    case 'meaningDrift':
+      return 'The Hindi says exactly what the English means.'
+    case 'naturalPhrasing':
+      return 'Reads as if it was first written in Hindi.'
+    case 'termConsistency':
+      return 'Key terms stay the same from start to finish.'
+    case 'voiceConviction':
+      return 'The conviction of the original comes through.'
+  }
+}
+
+/** "Sep 2026", as used throughout the design. */
+export function formatMonth(iso: string): string {
   const d = new Date(`${iso}T00:00:00`)
   if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  return d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
 }
 
 function slug(title: string): string {

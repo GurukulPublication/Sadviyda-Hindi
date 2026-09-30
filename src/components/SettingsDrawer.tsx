@@ -81,7 +81,7 @@ export default function SettingsDrawer({
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-40 bg-ink/30"
+            className="fixed inset-0 z-40 bg-ink/40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -89,7 +89,7 @@ export default function SettingsDrawer({
           />
           <motion.aside
             className="fixed right-0 top-0 z-50 h-full w-full max-w-sm overflow-y-auto
-                       bg-card border-l border-ink/10 p-6"
+                       bg-card border-l border-border p-6"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -107,7 +107,7 @@ export default function SettingsDrawer({
               <h3 className="font-heading text-sm font-semibold mb-2">
                 Language filter
               </h3>
-              <p className="text-xs text-ink/60 mb-2">
+              <p className="text-xs text-olive mb-2">
                 Applies to every page of the dashboard.
               </p>
               <div className="flex gap-2">
@@ -117,7 +117,7 @@ export default function SettingsDrawer({
                     onClick={() => setLanguageFilter(f)}
                     className={
                       languageFilter === f
-                        ? 'btn bg-terracotta text-cream'
+                        ? 'btn bg-ink text-white'
                         : 'btn-ghost'
                     }
                   >
@@ -159,7 +159,7 @@ export default function SettingsDrawer({
               <h3 className="font-heading text-sm font-semibold mb-2">
                 Sample data
               </h3>
-              <p className="text-xs text-ink/60 mb-2">
+              <p className="text-xs text-olive mb-2">
                 Six fake articles so you can see the dashboard full. They are
                 labelled “Demo” and can be removed in one click.
               </p>
@@ -183,18 +183,18 @@ export default function SettingsDrawer({
                 Clear everything
               </h3>
               {confirmStep === 0 && (
-                <button className="btn-danger" onClick={() => setConfirmStep(1)}>
+                <button className="btn border border-brand/40 text-brand hover:bg-brand/5" onClick={() => setConfirmStep(1)}>
                   Clear all data
                 </button>
               )}
               {confirmStep === 1 && (
                 <div className="space-y-2">
-                  <p className="text-xs text-ink/70">
+                  <p className="text-xs text-ink/80">
                     This deletes every report on this machine. Export a backup
                     first if you are not sure.
                   </p>
                   <div className="flex gap-2">
-                    <button className="btn-danger" onClick={() => setConfirmStep(2)}>
+                    <button className="btn border border-brand/40 text-brand hover:bg-brand/5" onClick={() => setConfirmStep(2)}>
                       Yes, continue
                     </button>
                     <button className="btn-ghost" onClick={() => setConfirmStep(0)}>
@@ -205,12 +205,12 @@ export default function SettingsDrawer({
               )}
               {confirmStep === 2 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-terracotta">
+                  <p className="text-xs font-semibold text-brand">
                     Really delete all {allReports.length} report(s)? This cannot
                     be undone.
                   </p>
                   <div className="flex gap-2">
-                    <button className="btn-danger" onClick={doClearAll}>
+                    <button className="btn border border-brand/40 text-brand hover:bg-brand/5" onClick={doClearAll}>
                       Delete everything
                     </button>
                     <button className="btn-ghost" onClick={() => setConfirmStep(0)}>
@@ -222,10 +222,10 @@ export default function SettingsDrawer({
             </section>
 
             {message && (
-              <p className="rounded-lg bg-sage/60 p-3 text-xs">{message}</p>
+              <p className="rounded-lg bg-tintGreen p-3 text-xs">{message}</p>
             )}
 
-            <p className="mt-8 text-[11px] text-ink/40">
+            <p className="mt-8 text-[11px] text-muted">
               Everything is stored in this browser only ({db.name}). No account,
               no server.
             </p>
