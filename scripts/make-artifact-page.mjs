@@ -73,7 +73,8 @@ const files = {
   ),
   'gurukul-emblem.png': 'dist/gurukul-emblem.png',
   'sadvidya-wordmark.png': 'dist/sadvidya-wordmark.png',
-  'favicon.svg': 'dist/favicon.svg',
+  'favicon.png': 'dist/favicon.png',
+  'apple-touch-icon.png': 'dist/apple-touch-icon.png',
 }
 
 console.log('\nPublish dist/artifact-page.html with these files:\n')
