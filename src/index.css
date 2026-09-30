@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base look: warm cream page, editorial type. */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-cream text-ink font-body antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading;
+  }
+  /* Any Devanagari text gets the Noto font. */
+  .deva {
+    font-family: 'Noto Sans Devanagari', 'Lora', serif;
+  }
+}
+
+@layer components {
+  /* The standard rounded card with a thin warm border. */
+  .card {
+    @apply bg-card border border-ink/10 rounded-xl2 shadow-soft;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2
+           text-sm font-heading font-medium transition-colors
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta/50;
+  }
+  .btn-primary {
+    @apply btn bg-terracotta text-cream hover:bg-terracotta/90;
+  }
+  .btn-ghost {
+    @apply btn border border-ink/15 text-ink hover:bg-sand;
+  }
+  .btn-danger {
+    @apply btn border border-terracotta/40 text-terracotta hover:bg-peach;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-ink/15 bg-card px-3 py-2 text-sm
+           focus:outline-none focus:ring-2 focus:ring-terracotta/40;
+  }
+
+  .badge-flagged {
+    @apply inline-block rounded-full bg-terracotta px-2 py-0.5 text-[11px]
+           font-heading font-medium tracking-wide text-cream;
+  }
+  .badge-unsure {
+    @apply inline-block rounded-full bg-sand px-2 py-0.5 text-[11px]
+           font-heading font-medium tracking-wide text-ink/70;
+  }
+
+  /* The large faded section number used in the background of sections. */
+  .section-number {
+    @apply pointer-events-none select-none absolute -top-6 right-2
+           font-heading font-bold text-ink/[0.045] leading-none;
+    font-size: clamp(4rem, 12vw, 9rem);
+  }
+}
+
+/* The diya flame flicker. Amount of movement is set per-diya in JS. */
+@keyframes flicker {
+  0%,
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  25% {
+    transform: scale(0.94, 1.05) translateY(-1px);
+    opacity: 0.92;
+  }
+  50% {
+    transform: scale(1.04, 0.96) translateY(1px);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(0.97, 1.03) translateY(-0.5px);
+    opacity: 0.95;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

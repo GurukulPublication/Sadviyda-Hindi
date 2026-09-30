@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-ssr
+samples
+*.local
+.DS_Store
+.vite
+coverage
+tsconfig.tsbuildinfo
