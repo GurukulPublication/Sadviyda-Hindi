@@ -136,6 +136,17 @@ read at all, the same table opens blank so you can type the report in by hand.
 
 ---
 
+## Reading a chart closely
+
+Every chart on the Home page has an **Expand** button in its corner. It opens
+the same chart in a large overlay, where it has room to be read. Close it with
+the button, the Escape key, or by clicking outside it.
+
+The four-parameter radar also lists the exact figures as a table when it is
+expanded, so you never have to judge a score by the size of a shape.
+
+---
+
 ## Ticking flags off
 
 Each flag on an article page has a **Mark as fixed** button. Use it as you work

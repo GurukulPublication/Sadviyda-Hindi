@@ -6,7 +6,8 @@
  *  - Flags per month: stacked bars, one column per calendar month
  */
 
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
+import ChartPanel from './ChartPanel'
 import {
   Area,
   Bar,
@@ -43,26 +44,35 @@ const TOOLTIP = {
   fontFamily: 'Poppins, sans-serif',
 }
 
-/** A section card with a heading on the left and a legend on the right. */
+/**
+ * A chart card that can be opened larger. Each chart keeps its own open/closed
+ * state here, so the page itself does not have to know about it.
+ */
 function Panel({
   title,
   legend,
   children,
+  detail,
   className = '',
 }: {
   title: string
   legend?: ReactNode
-  children: ReactNode
+  children: (expanded: boolean) => ReactNode
+  detail?: ReactNode
   className?: string
 }) {
+  const [expanded, setExpanded] = useState(false)
   return (
-    <section className={`card p-5 sm:p-6 ${className}`}>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-heading text-[17px] font-semibold">{title}</h3>
-        {legend}
-      </div>
+    <ChartPanel
+      title={title}
+      legend={legend}
+      detail={detail}
+      className={className}
+      expanded={expanded}
+      onExpandedChange={setExpanded}
+    >
       {children}
-    </section>
+    </ChartPanel>
   )
 }
 
@@ -115,7 +125,8 @@ export function ScoreJourney({ reports }: { reports: ScoredReport[] }) {
         />
       }
     >
-      <div className="h-64 w-full">
+      {(expanded) => (
+      <div className={expanded ? 'h-[62vh] w-full' : 'h-64 w-full'}>
         <ResponsiveContainer>
           <ComposedChart data={data} margin={{ top: 10, right: 16, bottom: 4, left: -20 }}>
             <CartesianGrid stroke={chart.grid} vertical={false} />
@@ -151,6 +162,7 @@ export function ScoreJourney({ reports }: { reports: ScoredReport[] }) {
           </ComposedChart>
         </ResponsiveContainer>
       </div>
+      )}
     </Panel>
   )
 }
@@ -175,10 +187,51 @@ export function ParameterRadar({ reports }: { reports: ScoredReport[] }) {
           <LegendItem color={chart.radarLatest} label="latest" dashed />
         </span>
       }
+      detail={
+        <div className="mt-4 border-t border-border pt-4">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left font-heading text-xs uppercase tracking-wider text-olive">
+                <th className="pb-2 font-medium">Parameter</th>
+                <th className="pb-2 text-right font-medium">Average</th>
+                <th className="pb-2 text-right font-medium">Latest</th>
+              </tr>
+            </thead>
+            <tbody>
+              {PARAMETERS.map((p) => (
+                <tr key={p.key} className="border-t border-border/60">
+                  <td className="py-2">
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="inline-block h-2.5 w-2.5 rounded-sm"
+                        style={{ background: p.color }}
+                      />
+                      {p.label}
+                    </span>
+                  </td>
+                  <td className="py-2 text-right font-heading tabular-nums">
+                    {average[p.key].toFixed(1)}
+                  </td>
+                  <td className="py-2 text-right font-heading tabular-nums">
+                    {latest ? latest.scores[p.key].toFixed(1) : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {reports.length === 1 && (
+            <p className="mt-3 aside text-sm">
+              With one article, your average and your latest are the same, so
+              the two shapes sit exactly on top of each other.
+            </p>
+          )}
+        </div>
+      }
     >
-      <div className="h-64 w-full">
+      {(expanded) => (
+      <div className={expanded ? 'h-[60vh] w-full' : 'h-64 w-full'}>
         <ResponsiveContainer>
-          <RadarChart data={data} outerRadius="68%">
+          <RadarChart data={data} outerRadius={expanded ? '72%' : '68%'}>
             <PolarGrid stroke={chart.grid} />
             <PolarAngleAxis
               dataKey="parameter"
@@ -206,6 +259,7 @@ export function ParameterRadar({ reports }: { reports: ScoredReport[] }) {
           </RadarChart>
         </ResponsiveContainer>
       </div>
+      )}
     </Panel>
   )
 }
@@ -241,12 +295,13 @@ export function FlagsPerMonth({ reports }: { reports: ScoredReport[] }) {
           </span>
         }
       >
-        {grandTotal === 0 ? (
+        {(expanded) =>
+          grandTotal === 0 ? (
           <p className="py-10 text-center aside">
             No flags yet — nothing to break down.
           </p>
         ) : (
-          <div className="h-56 w-full">
+          <div className={expanded ? 'h-[55vh] w-full' : 'h-56 w-full'}>
             <ResponsiveContainer>
               <BarChart
                 data={data}
@@ -294,12 +349,13 @@ export function FlagsPerMonth({ reports }: { reports: ScoredReport[] }) {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+            <p className="mt-3 aside text-sm">
+              Once you have reports from a few different months, this becomes a
+              month-by-month trend.
+            </p>
           </div>
-        )}
-        <p className="mt-3 aside text-sm">
-          Once you have reports from a few different months, this becomes a
-          month-by-month trend.
-        </p>
+          )
+        }
       </Panel>
     )
   }
@@ -322,7 +378,8 @@ export function FlagsPerMonth({ reports }: { reports: ScoredReport[] }) {
         </span>
       }
     >
-      <div className="h-64 w-full">
+      {(expanded) => (
+      <div className={expanded ? 'h-[62vh] w-full' : 'h-64 w-full'}>
         <ResponsiveContainer>
           <BarChart data={data} margin={{ top: 18, right: 16, bottom: 4, left: -24 }}>
             <CartesianGrid stroke={chart.grid} vertical={false} />
@@ -357,8 +414,9 @@ export function FlagsPerMonth({ reports }: { reports: ScoredReport[] }) {
             ))}
           </BarChart>
         </ResponsiveContainer>
+        <p className="mt-3 aside text-sm">{trendSentence(months)}</p>
       </div>
-      <p className="mt-3 aside text-sm">{trendSentence(months)}</p>
+      )}
     </Panel>
   )
 }
