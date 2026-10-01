@@ -354,8 +354,8 @@ export default function ArticleDetail() {
                     {items.map((flag) => (
                       <article key={flag.id} className="card p-5">
                         <div className="flex gap-4">
-                          <span className="font-heading text-xs text-olive">
-                            L{flag.line ?? '—'}
+                          <span className="whitespace-nowrap font-heading text-xs text-olive">
+                            {flag.ref ?? (flag.line !== null ? `L${flag.line}` : '—')}
                           </span>
                           <div className="grid flex-1 gap-4 sm:grid-cols-2">
                             <div>
@@ -378,6 +378,11 @@ export default function ArticleDetail() {
                         <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-dashed border-border pt-3">
                           <p className="aside min-w-0 flex-1 text-sm leading-relaxed">
                             {flag.reason}
+                            {flag.section && (
+                              <span className="ml-2 chip bg-sand not-italic text-olive">
+                                {flag.section}
+                              </span>
+                            )}
                             {flag.term && (
                               <span className="ml-2 chip bg-sand not-italic text-olive">
                                 {flag.term}

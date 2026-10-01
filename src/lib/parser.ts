@@ -69,7 +69,15 @@ export function normaliseText(raw: string): string {
     .replace(/\r\n?/g, '\n')
     .replace(/ /g, ' ')
     .split('\n')
-    .map((l) => l.replace(/[ \t]+/g, ' ').trimEnd())
+    // Tabs are kept: pdf.ts uses them to mark a column break inside a line,
+    // which is how the English and the translation stay apart.
+    .map((l) =>
+      l
+        .split('\t')
+        .map((segment) => segment.replace(/ +/g, ' ').trim())
+        .join('\t')
+        .replace(/\s+$/, ''),
+    )
     .join('\n')
 }
 
@@ -89,12 +97,10 @@ function parseDate(raw: string): string | null {
 }
 
 /**
- * Parse the plain text of a Flag Report into a Report plus warnings.
- * Never throws: if it cannot find anything it returns an empty report and
- * says so in the warnings, so the Add page can fall back to manual entry.
+ * Parse a report written in the plain template (the one the "Copy review
+ * template" button produces).
  */
-export function parseFlagReport(rawInput: string): ParseResult {
-  const text = normaliseText(rawInput || '')
+function parseTemplateReport(text: string): ParseResult {
   const warnings: string[] = []
 
   // --- Header -------------------------------------------------------------
@@ -221,4 +227,235 @@ export function parseSummaryLine(
     if (key) out[key] = value
   }
   return Object.keys(out).length ? out : null
+}
+
+/* ------------------------------------------------------------------------- *
+ * The designed Flag Report
+ *
+ * Reviews are not always written in the plain template. A designed report lays
+ * each flag out as a titled box:
+ *
+ *   FLAGGED — TONE LOSS F1 · Opening
+ *   ENGLISH                  HINDI            <- two columns, one line
+ *   What if the friends...   जिन दोस्तों...
+ *   THE GAP          <why it was flagged>
+ *   WHY IT MATTERS   <why it matters>
+ *
+ * There are no line numbers; each flag has a reference (F1, U1, C1) and the
+ * article section it came from. CLEAN entries are praise, not problems, so
+ * they are counted and reported but never saved as flags.
+ * ------------------------------------------------------------------------- */
+
+/** "FLAGGED — TONE LOSS F1 · Opening", "UNSURE U1 · Throughout". */
+/**
+ * No word boundary after the status: PDF text extraction sometimes loses the
+ * space, leaving "UNSUREU1 · Throughout". The reference and the "·" that
+ * follow are distinctive enough on their own.
+ */
+const STYLED_FLAG_HEADER =
+  /^(FLAGGED|UNSURE|CLEAN)[ \t]*(?:[—–-][ \t]*([^\t\n]*?))?[ \t]*([FUC]\d+)[ \t]*·[ \t]*([^\t\n]*)$/i
+
+/** Does this text look like a designed report rather than the template? */
+export function isStyledReport(text: string): boolean {
+  return text.split('\n').some((line) => STYLED_FLAG_HEADER.test(line.trim()))
+}
+
+/** Labels inside a flag box. Compared with spaces removed, because the */
+/** designed reports letter-space their small caps ("T HE CALL"). */
+const BOX_LABELS: { key: string; match: string }[] = [
+  { key: 'english', match: 'ENGLISH' },
+  { key: 'hindi', match: 'HINDI' },
+  { key: 'gujarati', match: 'GUJARATI' },
+  { key: 'gap', match: 'THEGAP' },
+  { key: 'why', match: 'WHYITMATTERS' },
+  { key: 'call', match: 'THECALL' },
+  { key: 'options', match: 'OPTIONS' },
+  { key: 'note', match: 'THENOTE' },
+]
+
+/** Strip a known label off the front of a line; returns null if there is none. */
+function takeLabel(line: string): { key: string; rest: string } | null {
+  const squashed = line.replace(/\s/g, '').toUpperCase()
+  for (const { key, match } of BOX_LABELS) {
+    if (!squashed.startsWith(match)) continue
+    // Walk the original line until `match` worth of non-space characters pass.
+    let seen = 0
+    let i = 0
+    for (; i < line.length && seen < match.length; i++) {
+      if (!/\s/.test(line[i])) seen++
+    }
+    return { key, rest: line.slice(i).trim() }
+  }
+  return null
+}
+
+/** "ENGLISH", "HINDI", or the two of them as one column-heading row. */
+function isColumnHeading(line: string): boolean {
+  const squashed = line.replace(/\s/g, '').toUpperCase()
+  return /^(ENGLISH|HINDI|GUJARATI)+$/.test(squashed)
+}
+
+/** True when a string contains Devanagari or Gujarati letters. */
+function hasIndicText(s: string): boolean {
+  return /[ऀ-ॿ઀-૿]/.test(s)
+}
+
+/** Parse a designed report into a Report plus warnings. */
+function parseStyledReport(text: string): ParseResult {
+  const warnings: string[] = []
+  const lines = text.split('\n')
+
+  // --- Header -------------------------------------------------------------
+  const head = lines.slice(0, 20).join('\n')
+  // The article title is the quoted phrase near the top, often split over
+  // two lines by the layout.
+  const quoted = head.match(/[“"]([^”"]{3,160})[”"]/)
+  const title = quoted ? quoted[1].replace(/\s*\n\s*/g, ' ').trim() : ''
+  if (!title) {
+    warnings.push('Could not find the article title — please type it in.')
+  }
+
+  const language: Language = /gujarati/i.test(head) ? 'Gujarati' : 'Hindi'
+
+  // These reports carry no date, so today's is used until it is corrected.
+  const dateMatch = head.match(/(\d{4})-(\d{2})-(\d{2})/)
+  if (!dateMatch) {
+    warnings.push(
+      'This report does not carry a date — set the article date yourself.',
+    )
+  }
+
+  // --- Flag boxes ---------------------------------------------------------
+  const headerIndexes: number[] = []
+  lines.forEach((line, i) => {
+    if (STYLED_FLAG_HEADER.test(line.trim())) headerIndexes.push(i)
+  })
+
+  const flags: Flag[] = []
+  let cleanCount = 0
+
+  headerIndexes.forEach((startIndex, n) => {
+    const header = lines[startIndex].trim().match(STYLED_FLAG_HEADER)!
+    const rawStatus = header[1].toUpperCase()
+    const rawParameter = (header[2] || '').trim()
+    const ref = header[3].toUpperCase()
+    const section = (header[4] || '').trim()
+
+    // CLEAN entries praise what went well; they are not flags.
+    if (rawStatus === 'CLEAN') {
+      cleanCount++
+      return
+    }
+
+    const end = headerIndexes[n + 1] ?? lines.length
+    const body = lines.slice(startIndex + 1, end)
+
+    // Inside a box, everything before a prose label ("THE GAP", "WHY IT
+    // MATTERS") belongs to the bilingual area: the English line and its
+    // translation, side by side. Which is which is decided by the script
+    // itself rather than by position, so a line that wraps or loses its
+    // column still lands in the right place.
+    const PROSE_LABELS = new Set(['gap', 'why', 'call', 'options', 'note'])
+    const parts: Record<string, string[]> = {}
+    let current: string | null = null
+
+    for (const rawLine of body) {
+      const line = rawLine.trim()
+      if (!line) continue
+
+      // "ENGLISH | HINDI" column headings carry no content.
+      if (isColumnHeading(line)) {
+        current = null
+        continue
+      }
+
+      const labelled = takeLabel(line)
+      if (labelled && PROSE_LABELS.has(labelled.key)) {
+        current = labelled.key
+        if (labelled.rest) (parts[current] ??= []).push(labelled.rest)
+        continue
+      }
+
+      if (current && PROSE_LABELS.has(current)) {
+        // A prose paragraph. If a justified line was split into segments,
+        // put it back together.
+        ;(parts[current] ??= []).push(line.split('\t').join(' ').trim())
+        continue
+      }
+
+      // The bilingual area.
+      for (const segment of line.split('\t')) {
+        const text = segment.trim()
+        if (!text) continue
+        const side = hasIndicText(text) ? 'hindi' : 'english'
+        ;(parts[side] ??= []).push(text)
+      }
+    }
+
+    const join = (key: string) => (parts[key] ?? []).join(' ').trim()
+
+    // The reason is "the gap" plus "why it matters" (or, for an unsure item,
+    // "the call" plus "options").
+    const reason = [join('gap'), join('why'), join('call'), join('options'), join('note')]
+      .filter(Boolean)
+      .join(' — ')
+
+    const parameter: ParameterKey | null = matchParameter(rawParameter)
+    if (!parameter) {
+      warnings.push(
+        rawParameter
+          ? `${ref}: could not tell which parameter "${rawParameter}" is — set to Meaning Drift, please correct it.`
+          : `${ref}: no parameter was named — set to Meaning Drift, please correct it.`,
+      )
+    }
+
+    flags.push({
+      id: newId(),
+      line: null,
+      ref,
+      section: section || undefined,
+      english: join('english'),
+      hindi: join('hindi') || join('gujarati'),
+      parameter: parameter ?? 'meaningDrift',
+      status: rawStatus === 'UNSURE' ? 'UNSURE' : 'FLAGGED',
+      reason,
+    })
+  })
+
+  if (cleanCount > 0) {
+    warnings.push(
+      `${cleanCount} "clean" highlight${cleanCount === 1 ? ' was' : 's were'} listed in this report. Those praise what went well, so they are not saved as flags and do not affect the score.`,
+    )
+  }
+
+  if (flags.length === 0) {
+    warnings.push(
+      'No flags were found in this PDF. Add them by hand below, or check that the report uses one of the known formats.',
+    )
+  }
+
+  const report: Report = {
+    title: title || 'Untitled article',
+    date: dateMatch ? dateMatch[0] : new Date().toISOString().slice(0, 10),
+    language,
+    status: flags.some((f) => f.status === 'FLAGGED') ? 'FLAGGED' : 'CLEAN',
+    flags,
+    createdAt: new Date().toISOString(),
+  }
+
+  return { report, warnings, rawText: text }
+}
+
+/**
+ * Parse the plain text of a Flag Report into a Report plus warnings.
+ *
+ * Two layouts are understood: the plain template, and the designed report
+ * with its FLAGGED/UNSURE/CLEAN boxes. Never throws — if it cannot find
+ * anything it returns an empty report and says so in the warnings, so the Add
+ * page can fall back to manual entry.
+ */
+export function parseFlagReport(rawInput: string): ParseResult {
+  const text = normaliseText(rawInput || '')
+  if (isStyledReport(text)) return parseStyledReport(text)
+  return parseTemplateReport(text)
 }

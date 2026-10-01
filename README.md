@@ -101,11 +101,38 @@ Meaning Drift: 1 | Natural Phrasing: 2 | Term Consistency: 0 | Voice & Convictio
 ```
 
 The parser is forgiving about case, spacing and small variations such as
-`meaning-drift` or `Term consistency`. **After parsing you always get a review
-table** where you can correct the parameter, change the status, edit any text,
-add a missed flag or delete a wrong one. Nothing is saved until you click
-**Save Report**. If a PDF cannot be read at all, the same table opens blank so
-you can type the report in by hand.
+`meaning-drift` or `Term consistency`.
+
+### Designed reports are read too
+
+Reviews are not always written in the plain template. A designed report — the
+kind with coloured flag boxes — is also understood:
+
+```
+FLAGGED — TONE LOSS F1 · Opening
+ENGLISH                        HINDI
+What if the friends closest…   जिन दोस्तों के साथ…
+THE GAP          <what was lost>
+WHY IT MATTERS   <why it matters>
+```
+
+For these the dashboard:
+
+- reads the status (FLAGGED / UNSURE), the reference (`F1`) and the section
+- maps review wording onto the four parameters — "TONE LOSS" counts as Voice &
+  Conviction, "OMISSION" and "ADDITION" as Meaning Drift, "STRUCTURE" and
+  "STIFF PHRASING" as Natural Phrasing. The full list is `PARAMETER_ALIASES`
+  in `src/config/scoring.ts`
+- keeps the English and the translation apart even though they sit side by side
+  in two columns, deciding which is which by the script each one is written in
+- leaves out the **CLEAN** highlights, which praise what went well rather than
+  marking a problem, and tells you how many it skipped
+- warns you to set the date, since these reports do not carry one
+
+**After parsing you always get a review table** where you can correct the
+parameter, change the status, edit any text, add a missed flag or delete a
+wrong one. Nothing is saved until you click **Save Report**. If a PDF cannot be
+read at all, the same table opens blank so you can type the report in by hand.
 
 ---
 

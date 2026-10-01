@@ -169,3 +169,128 @@ describe('parseSummaryLine', () => {
     expect(parseSummaryLine('FLAG REPORT\nArticle: x')).toBeNull()
   })
 })
+
+/**
+ * A designed report, as pdf.ts hands it over: the flag boxes carry a status,
+ * a parameter, a reference and a section, and the English and the Hindi sit
+ * in two columns separated by a tab.
+ */
+const STYLED = [
+  'H I N D I T R A N S L A T I O N · R E V I E W R E P O R T',
+  '“How to Transform',
+  'Your Life, Easily?”',
+  'English original checked line-by-line against the Hindi translation.',
+  '24 checkpoints reviewed across the article.',
+  '',
+  'O P E N I N G',
+  'FLAGGED — TONE LOSS F1 · Opening',
+  'E NGLISH\tH INDI',
+  'WHAT IF BONDING IS THE TRAP?\tजिन दोस्तों के साथ आप रहते हो,',
+  "What if the friends closest to you\tवह हर समय आपकी भक्ति में विघ्न",
+  'THE GAP The punchy hook line is dropped completely. The line that should',
+  'grab the reader is gone.',
+  'WHY IT MATTERS Same as ditching the headline of a news story.',
+  '',
+  'FLAGGED — OMISSION (minor) F5 · Story: Aditya',
+  'E NGLISH\tH INDI',
+  'He stopped going to the mandir.\tवह मंदिर जाना बंद कर दिया।',
+  'THE GAP A whole clause is missing.',
+  '',
+  'FLAGGED — STIFF PHRASING F9 · Classroom',
+  'E NGLISH\tH INDI',
+  'It was then that he understood.\tयह तब था कि उसने समझा।',
+  'THE GAP A direct calque of the English.',
+  '',
+  'Unsure — Your Call',
+  'UNSURE U1 · Throughout',
+  'T HE CALL',
+  'Every section heading diverges from the English one.',
+  'O PTIONS',
+  'This could be a deliberate house style. Your call.',
+  '',
+  'Clean — Worth Calling Out',
+  'CLEAN C1 · Classroom',
+  'The puzzle reads clearer in Hindi than in the English here.',
+  'CLEAN C2 · How to Transform',
+  'A livelier, more physical image than a literal rendering.',
+].join('\n')
+
+describe('parseFlagReport (designed report)', () => {
+  it('reads the title from the quoted heading, across its line break', () => {
+    const { report } = parseFlagReport(STYLED)
+    expect(report.title).toBe('How to Transform Your Life, Easily?')
+  })
+
+  it('finds the flagged and unsure boxes', () => {
+    const { report } = parseFlagReport(STYLED)
+    expect(report.flags).toHaveLength(4)
+    expect(report.flags.filter((f) => f.status === 'FLAGGED')).toHaveLength(3)
+    expect(report.flags.filter((f) => f.status === 'UNSURE')).toHaveLength(1)
+  })
+
+  it('leaves the clean highlights out, and says so', () => {
+    const { report, warnings } = parseFlagReport(STYLED)
+    expect(report.flags.some((f) => f.ref?.startsWith('C'))).toBe(false)
+    expect(warnings.some((w) => /clean.*highlight/i.test(w))).toBe(true)
+  })
+
+  it('maps the review wording onto the four parameters', () => {
+    const { report } = parseFlagReport(STYLED)
+    const byRef = Object.fromEntries(report.flags.map((f) => [f.ref, f.parameter]))
+    expect(byRef.F1).toBe('voiceConviction') // TONE LOSS
+    expect(byRef.F5).toBe('meaningDrift') // OMISSION (minor)
+    expect(byRef.F9).toBe('naturalPhrasing') // STIFF PHRASING
+  })
+
+  it('keeps the reference and the section', () => {
+    const { report } = parseFlagReport(STYLED)
+    const f5 = report.flags.find((f) => f.ref === 'F5')!
+    expect(f5.ref).toBe('F5')
+    expect(f5.section).toBe('Story: Aditya')
+  })
+
+  it('splits the two columns into English and Hindi', () => {
+    const { report } = parseFlagReport(STYLED)
+    const f1 = report.flags.find((f) => f.ref === 'F1')!
+    expect(f1.english).toContain('WHAT IF BONDING IS THE TRAP?')
+    expect(f1.english).toContain('What if the friends closest to you')
+    expect(f1.english).not.toMatch(/[ऀ-ॿ]/)
+    expect(f1.hindi).toContain('जिन दोस्तों')
+    expect(f1.hindi).toContain('विघ्न')
+  })
+
+  it('does not treat the ENGLISH / HINDI headings as content', () => {
+    const { report } = parseFlagReport(STYLED)
+    for (const flag of report.flags) {
+      expect(flag.english).not.toMatch(/NGLISH/)
+      expect(flag.hindi).not.toMatch(/INDI/)
+    }
+  })
+
+  it('joins the reason out of THE GAP and WHY IT MATTERS', () => {
+    const { report } = parseFlagReport(STYLED)
+    const f1 = report.flags.find((f) => f.ref === 'F1')!
+    expect(f1.reason).toContain('punchy hook line is dropped completely')
+    // The paragraph runs over two lines and must not be cut short.
+    expect(f1.reason).toContain('grab the reader is gone')
+    expect(f1.reason).toContain('ditching the headline')
+  })
+
+  it('uses the call and the options as the reason for an unsure item', () => {
+    const { report } = parseFlagReport(STYLED)
+    const u1 = report.flags.find((f) => f.ref === 'U1')!
+    expect(u1.reason).toContain('Every section heading diverges')
+    expect(u1.reason).toContain('deliberate house style')
+  })
+
+  it('warns that the report carries no date', () => {
+    const { warnings } = parseFlagReport(STYLED)
+    expect(warnings.some((w) => /date/i.test(w))).toBe(true)
+  })
+
+  it('still parses the plain template, which has no flag boxes', () => {
+    const { report } = parseFlagReport(SAMPLE)
+    expect(report.flags).toHaveLength(3)
+    expect(report.flags[0].ref).toBeUndefined()
+  })
+})

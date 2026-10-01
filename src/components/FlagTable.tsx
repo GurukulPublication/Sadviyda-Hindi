@@ -59,20 +59,30 @@ export default function FlagTable({ flags, onChange }: Props) {
           <div key={flag.id} className="py-3">
             <div className="grid items-center gap-3 lg:grid-cols-[64px_190px_140px_1fr_40px]">
               {/* Line number */}
-              <label className="flex items-center gap-2">
-                <span className="label lg:hidden">Line</span>
-                <span className="font-heading text-sm text-olive">L</span>
-                <input
-                  type="number"
-                  className="input w-16 px-2 py-1.5 text-sm"
-                  value={flag.line ?? ''}
-                  onChange={(e) =>
-                    update(flag.id, {
-                      line: e.target.value === '' ? null : Number(e.target.value),
-                    })
-                  }
-                />
-              </label>
+              {flag.ref ? (
+                // Designed reports reference a flag ("F1") instead of a line.
+                <span
+                  className="font-heading text-sm font-semibold text-olive"
+                  title={flag.section ? `Section: ${flag.section}` : undefined}
+                >
+                  {flag.ref}
+                </span>
+              ) : (
+                <label className="flex items-center gap-2">
+                  <span className="label lg:hidden">Line</span>
+                  <span className="font-heading text-sm text-olive">L</span>
+                  <input
+                    type="number"
+                    className="input w-16 px-2 py-1.5 text-sm"
+                    value={flag.line ?? ''}
+                    onChange={(e) =>
+                      update(flag.id, {
+                        line: e.target.value === '' ? null : Number(e.target.value),
+                      })
+                    }
+                  />
+                </label>
+              )}
 
               {/* Parameter */}
               <select

@@ -34,6 +34,10 @@ export interface Flag {
   reason: string
   /** The key term involved, if the report named one (e.g. "dehbhav"). */
   term?: string
+  /** Reference used by designed reports instead of a line number, e.g. "F1". */
+  ref?: string
+  /** The article section the flag came from, e.g. "Action Point 3". */
+  section?: string
 }
 
 /** One uploaded Flag Report, i.e. one article review. */

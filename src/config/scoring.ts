@@ -160,15 +160,42 @@ export const GRADES: { min: number; label: string }[] = [
   { min: 0, label: 'Needs more oil' },
 ]
 
-/** Words used by the parser and the review table to match a parameter name. */
+/**
+ * Words used by the parser and the review table to match a parameter name.
+ *
+ * The first list is the proper name of each parameter. The rest are the words
+ * real reviews use for the same idea — designed reports often label a flag
+ * "TONE LOSS" or "OMISSION" rather than naming the parameter outright.
+ * Longer aliases win over shorter ones, so "meaning drift / addition" matches
+ * Meaning Drift rather than anything else.
+ */
 export const PARAMETER_ALIASES: Record<ParameterKey, string[]> = {
-  meaningDrift: ['meaning drift', 'meaning', 'drift', 'meaningdrift'],
+  meaningDrift: [
+    'meaning drift',
+    'meaning',
+    'drift',
+    'meaningdrift',
+    // Something dropped from, or invented in, the translation: the idea moved.
+    'omission',
+    'omitted',
+    'addition',
+    'added',
+    'accuracy',
+    'mistranslation',
+  ],
   naturalPhrasing: [
     'natural phrasing',
     'phrasing',
     'natural',
     'naturalphrasing',
     'naturalness',
+    'stiff phrasing',
+    'stiff',
+    'awkward',
+    'readability',
+    'flow',
+    'structure',
+    'word order',
   ],
   termConsistency: [
     'term consistency',
@@ -176,6 +203,8 @@ export const PARAMETER_ALIASES: Record<ParameterKey, string[]> = {
     'term',
     'consistency',
     'termconsistency',
+    'terms',
+    'inconsistent term',
   ],
   voiceConviction: [
     'voice conviction',
@@ -185,5 +214,9 @@ export const PARAMETER_ALIASES: Record<ParameterKey, string[]> = {
     'conviction',
     'tone',
     'voiceconviction',
+    'tone loss',
+    'tone shift',
+    'register',
+    'emphasis',
   ],
 }
