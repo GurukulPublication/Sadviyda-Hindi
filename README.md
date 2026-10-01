@@ -160,8 +160,10 @@ same way they are left out of the score.
   yellow / orange by score (hover for the title, click to open it); four stat
   cards; the score-journey line with its 8.0 target; the four-parameter radar
   (all-time average against your latest article); the **parameter key**, which
-  explains each parameter with a worked example; **flags per month**; and the
-  eight milestone badges.
+  explains each parameter with a worked example; a flags breakdown — which
+  becomes a month-by-month trend once you have reports from more than one
+  month, and stays a plain breakdown by parameter until then; and the eight
+  milestone badges.
 - **Articles (`/articles`)**: grouped by month, with search, a newest/oldest
   toggle and the language filter. Click one for the full report card — the four
   parameter scores, what went well, what to work on, every flag grouped by

@@ -66,12 +66,23 @@ export function scoreColor(score: number): string {
   return palette.ember
 }
 
-/** The four parameter colours, used by the charts and the flag groups. */
+/**
+ * The four parameter colours, used by the charts and the flag groups.
+ *
+ * These are deeper steps of the brand hues, chosen so the four stay apart for
+ * colourblind readers when they sit next to each other in a stacked bar. The
+ * set was checked with a palette validator: every pair separates, each colour
+ * clears the lightness and chroma floors. The brighter brand tints
+ * (palette.yellow, palette.orange, palette.green) stay reserved for the score
+ * bands, where colour means good-or-bad rather than which-parameter.
+ *
+ * If you change one, re-check that all six pairs still read apart.
+ */
 export const series = {
-  meaningDrift: palette.blue,
-  naturalPhrasing: palette.orange,
-  termConsistency: palette.yellow,
-  voiceConviction: palette.olive,
+  meaningDrift: palette.blue, // #1D4F9C
+  naturalPhrasing: '#C25E00', // deep orange
+  termConsistency: '#D4A017', // deep gold
+  voiceConviction: '#118A6E', // teal
 } as const
 
 /** Chart furniture: axes, grid lines, the target line and tooltips. */

@@ -12,7 +12,9 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   ComposedChart,
+  LabelList,
   Line,
   PolarAngleAxis,
   PolarGrid,
@@ -27,7 +29,7 @@ import {
 } from 'recharts'
 import { PARAMETERS, TARGET_SCORE } from '../config/scoring'
 import { chart, palette } from '../config/theme'
-import { averageByParameter, byMonth } from '../lib/stats'
+import { averageByParameter, byMonth, totalFlagsByParameter } from '../lib/stats'
 import type { ScoredReport } from '../types'
 
 const AXIS = { fontSize: 11, fill: chart.axisText }
@@ -208,9 +210,101 @@ export function ParameterRadar({ reports }: { reports: ScoredReport[] }) {
   )
 }
 
-/** c) Stacked bars of flags per calendar month. */
+/**
+ * c) Where the flags are.
+ *
+ * With reports from two or more months this is a stacked bar per month, which
+ * shows the trend. With only one month there is no trend to show and a single
+ * stacked bar stretched across the panel says nothing, so it becomes a plain
+ * breakdown by parameter instead — the same numbers, in a form that reads.
+ */
 export function FlagsPerMonth({ reports }: { reports: ScoredReport[] }) {
   const months = byMonth(reports)
+  const totals = totalFlagsByParameter(reports)
+  const grandTotal = PARAMETERS.reduce((sum, p) => sum + totals[p.key], 0)
+
+  // --- Not enough months for a trend: show the breakdown ------------------
+  if (months.length < 2) {
+    const data = PARAMETERS.map((p) => ({
+      label: p.label,
+      short: p.guide.short,
+      flags: totals[p.key],
+      color: p.color,
+    }))
+
+    return (
+      <Panel
+        title="Where your flags are"
+        legend={
+          <span className="font-heading text-xs text-olive">
+            {grandTotal} flag{grandTotal === 1 ? '' : 's'} in all
+          </span>
+        }
+      >
+        {grandTotal === 0 ? (
+          <p className="py-10 text-center aside">
+            No flags yet — nothing to break down.
+          </p>
+        ) : (
+          <div className="h-56 w-full">
+            <ResponsiveContainer>
+              <BarChart
+                data={data}
+                layout="vertical"
+                margin={{ top: 4, right: 36, bottom: 4, left: 8 }}
+              >
+                <CartesianGrid stroke={chart.grid} horizontal={false} />
+                <XAxis
+                  type="number"
+                  allowDecimals={false}
+                  tick={AXIS}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="short"
+                  width={72}
+                  tick={{ ...AXIS, fontFamily: 'Poppins, sans-serif' }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip
+                  contentStyle={TOOLTIP}
+                  cursor={{ fill: 'rgba(34,32,28,0.04)' }}
+                  formatter={(v: number) => [`${v}`, 'Flags']}
+                  labelFormatter={(_l, p) => p?.[0]?.payload?.label ?? ''}
+                />
+                <Bar dataKey="flags" radius={[0, 4, 4, 0]} maxBarSize={26}>
+                  {data.map((d) => (
+                    <Cell key={d.label} fill={d.color} />
+                  ))}
+                  {/* The count sits at the end of each bar, so the figure is
+                      readable without relying on the colour. */}
+                  <LabelList
+                    dataKey="flags"
+                    position="right"
+                    style={{
+                      fill: chart.axisText,
+                      fontSize: 12,
+                      fontFamily: 'Poppins, sans-serif',
+                      fontWeight: 600,
+                    }}
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+        <p className="mt-3 aside text-sm">
+          Once you have reports from a few different months, this becomes a
+          month-by-month trend.
+        </p>
+      </Panel>
+    )
+  }
+
+  // --- Two or more months: the trend --------------------------------------
   const data = months.map((m) => {
     const row: Record<string, string | number> = { name: m.month, total: m.total }
     for (const p of PARAMETERS) row[p.label] = m.flags[p.key]
@@ -230,7 +324,7 @@ export function FlagsPerMonth({ reports }: { reports: ScoredReport[] }) {
     >
       <div className="h-64 w-full">
         <ResponsiveContainer>
-          <BarChart data={data} margin={{ top: 10, right: 16, bottom: 4, left: -24 }}>
+          <BarChart data={data} margin={{ top: 18, right: 16, bottom: 4, left: -24 }}>
             <CartesianGrid stroke={chart.grid} vertical={false} />
             <XAxis dataKey="name" tick={AXIS} tickLine={false} axisLine={false} />
             <YAxis allowDecimals={false} tick={AXIS} tickLine={false} axisLine={false} />
@@ -241,8 +335,25 @@ export function FlagsPerMonth({ reports }: { reports: ScoredReport[] }) {
                 dataKey={p.label}
                 stackId="flags"
                 fill={p.color}
+                maxBarSize={56}
+                // A hairline of the card colour separates the segments.
+                stroke={palette.card}
+                strokeWidth={1.5}
                 radius={i === PARAMETERS.length - 1 ? [4, 4, 0, 0] : undefined}
-              />
+              >
+                {i === PARAMETERS.length - 1 && (
+                  <LabelList
+                    dataKey="total"
+                    position="top"
+                    style={{
+                      fill: chart.axisText,
+                      fontSize: 11,
+                      fontFamily: 'Poppins, sans-serif',
+                      fontWeight: 600,
+                    }}
+                  />
+                )}
+              </Bar>
             ))}
           </BarChart>
         </ResponsiveContainer>
