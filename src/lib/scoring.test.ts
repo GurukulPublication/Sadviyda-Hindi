@@ -189,3 +189,44 @@ describe('matchStatus', () => {
     expect(matchStatus('')).toBe('FLAGGED')
   })
 })
+
+describe('resolving a flag never changes the score', () => {
+  /** The same report, once untouched and once with every flag ticked off. */
+  const flags = [
+    flag('meaningDrift'),
+    flag('naturalPhrasing'),
+    flag('voiceConviction'),
+    flag('termConsistency', 'UNSURE'),
+  ]
+  const before = scoreReport(report(flags))
+  const after = scoreReport(
+    report(flags.map((f) => ({ ...f, resolved: true, resolvedAt: '2026-10-01' }))),
+  )
+
+  it('leaves the overall score exactly as it was', () => {
+    expect(after.overall).toBe(before.overall)
+    // 8 x .35 + 9 x .25 + 10 x .15 + 8.5 x .25 = 8.675 -> 8.7
+    expect(after.overall).toBe(8.7)
+  })
+
+  it('leaves every parameter score as it was', () => {
+    expect(after.scores).toEqual(before.scores)
+  })
+
+  it('leaves the grade as it was', () => {
+    expect(after.grade).toBe(before.grade)
+  })
+
+  it('still counts the flag against its parameter', () => {
+    // The flag happened; fixing it afterwards does not erase the record.
+    expect(after.flagCounts).toEqual(before.flagCounts)
+    expect(after.flagCounts.meaningDrift).toBe(1)
+  })
+
+  it('does not change the score when only some flags are fixed', () => {
+    const partly = scoreReport(
+      report(flags.map((f, i) => (i === 0 ? { ...f, resolved: true } : f))),
+    )
+    expect(partly.overall).toBe(before.overall)
+  })
+})

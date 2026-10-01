@@ -49,13 +49,33 @@ export function totalFlags(reports: ScoredReport[]): number {
 }
 
 /**
- * "Flags resolved": every flag from an earlier article that no longer appears
- * in the latest one is counted as dealt with. In practice this is simply the
- * number of flags in all reports except the newest — issues already behind you.
+ * How many flags you have gone back and fixed.
+ *
+ * Resolving a flag never changes a score — see the note on Flag.resolved.
  */
 export function flagsResolved(reports: ScoredReport[]): number {
-  if (reports.length < 2) return 0
-  return totalFlags(reports.slice(0, -1))
+  return reports.reduce(
+    (sum, r) =>
+      sum + r.flags.filter((f) => f.status === 'FLAGGED' && f.resolved).length,
+    0,
+  )
+}
+
+/** Flags still waiting to be fixed. */
+export function openFlags(reports: ScoredReport[]): number {
+  return totalFlags(reports) - flagsResolved(reports)
+}
+
+/** Fixed and total counts for a single report. */
+export function resolvedInReport(report: ScoredReport): {
+  resolved: number
+  total: number
+} {
+  const flagged = report.flags.filter((f) => f.status === 'FLAGGED')
+  return {
+    resolved: flagged.filter((f) => f.resolved).length,
+    total: flagged.length,
+  }
 }
 
 /** How many of the most recent articles in a row scored 8 or higher. */

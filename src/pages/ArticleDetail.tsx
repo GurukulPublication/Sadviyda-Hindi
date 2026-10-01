@@ -15,7 +15,12 @@ import { useApp } from '../context/AppContext'
 import { MAX_SCORE, PARAMETERS, PARAM_BY_KEY } from '../config/scoring'
 import { palette, scoreColor } from '../config/theme'
 import { deleteReport, updateReport } from '../db/db'
-import { averageByParameter, cleanParameters, weakestOf } from '../lib/stats'
+import {
+  averageByParameter,
+  cleanParameters,
+  resolvedInReport,
+  weakestOf,
+} from '../lib/stats'
 import { scoreReport } from '../lib/scoring'
 import type { Flag, Language, ParameterKey } from '../types'
 
@@ -60,6 +65,7 @@ export default function ArticleDetail() {
   const clean = cleanParameters(report)
   const weakest = weakestOf(report)
   const flaggedCount = report.flags.filter((f) => f.status === 'FLAGGED').length
+  const fixed = resolvedInReport(report)
 
   function startEditing() {
     setDraftFlags(report!.flags.map((f) => ({ ...f })))
@@ -79,6 +85,25 @@ export default function ArticleDetail() {
       flags: draftFlags,
     })
     setEditing(false)
+  }
+
+  /**
+   * Tick a flag off as fixed (or put it back). The score is untouched: it
+   * records how the translation read when it was reviewed.
+   */
+  async function toggleResolved(flagId: string) {
+    await updateReport(report!.id!, {
+      ...report!,
+      flags: report!.flags.map((f) =>
+        f.id === flagId
+          ? {
+              ...f,
+              resolved: !f.resolved,
+              resolvedAt: !f.resolved ? new Date().toISOString() : undefined,
+            }
+          : f,
+      ),
+    })
   }
 
   async function doDelete() {
@@ -321,7 +346,13 @@ export default function ArticleDetail() {
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="font-heading text-xl font-bold">Flags</h2>
           <span className="aside text-sm">
-            {flaggedCount} line{flaggedCount === 1 ? '' : 's'} to look at again
+            {fixed.total === 0
+              ? 'nothing to look at again'
+              : fixed.resolved === fixed.total
+                ? `all ${fixed.total} fixed — the score stays as it was reviewed`
+                : `${fixed.resolved} of ${fixed.total} fixed · ${
+                    fixed.total - fixed.resolved
+                  } still to do`}
           </span>
         </div>
 
@@ -352,7 +383,12 @@ export default function ArticleDetail() {
 
                   <div className="space-y-3">
                     {items.map((flag) => (
-                      <article key={flag.id} className="card p-5">
+                      <article
+                        key={flag.id}
+                        className={`card p-5 transition-opacity ${
+                          flag.resolved ? 'opacity-60' : ''
+                        }`}
+                      >
                         <div className="flex gap-4">
                           <span className="whitespace-nowrap font-heading text-xs text-olive">
                             {flag.ref ?? (flag.line !== null ? `L${flag.line}` : '—')}
@@ -391,13 +427,28 @@ export default function ArticleDetail() {
                           </p>
                           <span
                             className={
-                              flag.status === 'FLAGGED'
-                                ? 'badge-flagged'
-                                : 'badge-unsure'
+                              flag.resolved
+                                ? 'inline-block rounded-full border border-green bg-green/10 px-2.5 py-1 font-heading text-[11px] font-semibold tracking-wide text-greenDark'
+                                : flag.status === 'FLAGGED'
+                                  ? 'badge-flagged'
+                                  : 'badge-unsure'
                             }
                           >
-                            {flag.status}
+                            {flag.resolved ? 'FIXED' : flag.status}
                           </span>
+
+                          {/* Ticking this off never changes the score. */}
+                          <button
+                            onClick={() => toggleResolved(flag.id)}
+                            className={`btn px-3 py-1 text-xs ${
+                              flag.resolved
+                                ? 'text-olive hover:bg-sand'
+                                : 'border border-border bg-card hover:bg-sand'
+                            }`}
+                            title="Marking a flag fixed does not change the score"
+                          >
+                            {flag.resolved ? 'Undo' : 'Mark as fixed'}
+                          </button>
                         </div>
                       </article>
                     ))}

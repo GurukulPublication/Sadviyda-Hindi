@@ -21,6 +21,7 @@ import {
   currentStreak,
   flagsResolved,
   latestDelta,
+  openFlags,
   totalFlags,
 } from '../lib/stats'
 
@@ -68,7 +69,7 @@ export default function Home() {
   const streak = currentStreak(reports)
   const resolved = flagsResolved(reports)
   const total = totalFlags(reports)
-  const open = total - resolved
+  const open = openFlags(reports)
   const badges = computeBadges(reports)
   const earned = badges.filter((b) => b.earned).length
 
@@ -253,7 +254,13 @@ export default function Home() {
               style={{ width: `${total ? (resolved / total) * 100 : 0}%` }}
             />
           </div>
-          <p className="mt-2 text-sm text-olive">{open} still open</p>
+          <p className="mt-2 text-sm text-olive">
+            {total === 0
+              ? 'no flags yet'
+              : open === 0
+                ? 'every flag fixed'
+                : `${open} still open`}
+          </p>
         </div>
       </section>
 

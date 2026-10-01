@@ -38,6 +38,16 @@ export interface Flag {
   ref?: string
   /** The article section the flag came from, e.g. "Action Point 3". */
   section?: string
+  /**
+   * You have gone back and fixed this line.
+   *
+   * This NEVER changes the score. A score records how the translation read
+   * when it was reviewed, so it stays as it was; ticking a flag off only
+   * tracks the work you have done since.
+   */
+  resolved?: boolean
+  /** When it was ticked off, so the record is honest. */
+  resolvedAt?: string
 }
 
 /** One uploaded Flag Report, i.e. one article review. */

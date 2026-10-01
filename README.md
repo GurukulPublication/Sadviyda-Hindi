@@ -136,6 +136,23 @@ read at all, the same table opens blank so you can type the report in by hand.
 
 ---
 
+## Ticking flags off
+
+Each flag on an article page has a **Mark as fixed** button. Use it as you work
+back through a translation; the flag turns green and reads FIXED, and **Undo**
+puts it back.
+
+**Fixing a flag never changes the score.** A score records how the translation
+read when it was reviewed, so it stays where it is — a 7.6 article is still a
+7.6 article after you have fixed every line. What changes is the *Flags
+resolved* card on the Home page, and the "2 of 6 fixed" line above the flag
+list, which track the work you have done since.
+
+UNSURE items can be ticked off too, but they are left out of both counts, the
+same way they are left out of the score.
+
+---
+
 ## The pages
 
 - **Home — My Translation Journey (`/`)**: the Sadvidya masthead and your running

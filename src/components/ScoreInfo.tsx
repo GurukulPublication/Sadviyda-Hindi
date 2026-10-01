@@ -71,6 +71,11 @@ export default function ScoreInfo({ className = '' }: { className?: string }) {
             decimal. A clean report scores 10.0. The target line on the chart is{' '}
             {TARGET_SCORE.toFixed(1)}.
           </p>
+          <p className="mb-2">
+            Marking a flag <b>fixed</b> never changes the score. A score records
+            how the translation read when it was reviewed, so it stays put; the
+            tick only tracks the work you have done since.
+          </p>
           <p className="text-olive">
             {GRADES.map((g) => `${g.min}+ ${g.label}`).join(' · ')}
           </p>
