@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { flagsResolved, openFlags, resolvedInReport, totalFlags } from './stats'
+import {
+  flagsResolved,
+  openFlags,
+  resolvedInReport,
+  sortFlagsForReading,
+  totalFlags,
+} from './stats'
 import { scoreAll, scoreReport } from './scoring'
 import type { Flag, ParameterKey, Report } from '../types'
 
@@ -69,5 +75,72 @@ describe('resolvedInReport', () => {
       ]),
     )
     expect(resolvedInReport(scored)).toEqual({ resolved: 1, total: 2 })
+  })
+})
+
+describe('sortFlagsForReading', () => {
+  function withRef(ref: string | undefined, line: number | null = null): Flag {
+    n += 1
+    return {
+      id: `f${n}`,
+      line,
+      english: 'en',
+      hindi: 'hi',
+      parameter: 'meaningDrift',
+      status: 'FLAGGED',
+      reason: 'r',
+      ref,
+    }
+  }
+
+  it('reads F1, F2, F3 … in order, whatever order they arrived in', () => {
+    const sorted = sortFlagsForReading([
+      withRef('F3'),
+      withRef('F1'),
+      withRef('F2'),
+    ])
+    expect(sorted.map((f) => f.ref)).toEqual(['F1', 'F2', 'F3'])
+  })
+
+  it('puts F10 after F9, not after F1', () => {
+    const sorted = sortFlagsForReading([
+      withRef('F10'),
+      withRef('F2'),
+      withRef('F9'),
+      withRef('F1'),
+      withRef('F18'),
+    ])
+    expect(sorted.map((f) => f.ref)).toEqual(['F1', 'F2', 'F9', 'F10', 'F18'])
+  })
+
+  it('keeps the unsure items after the flagged ones', () => {
+    const sorted = sortFlagsForReading([
+      withRef('U1'),
+      withRef('F2'),
+      withRef('F1'),
+    ])
+    expect(sorted.map((f) => f.ref)).toEqual(['F1', 'F2', 'U1'])
+  })
+
+  it('falls back to the line number when there is no reference', () => {
+    const sorted = sortFlagsForReading([
+      withRef(undefined, 21),
+      withRef(undefined, 4),
+      withRef(undefined, 11),
+    ])
+    expect(sorted.map((f) => f.line)).toEqual([4, 11, 21])
+  })
+
+  it('leaves flags with neither reference nor line in their original order', () => {
+    const a = withRef(undefined, null)
+    const b = withRef(undefined, null)
+    expect(sortFlagsForReading([a, b]).map((f) => f.id)).toEqual([a.id, b.id])
+  })
+
+  it('does not drop or duplicate anything', () => {
+    const input = [withRef('F2'), withRef(undefined, 7), withRef('U1'), withRef('F1')]
+    const sorted = sortFlagsForReading(input)
+    expect(sorted).toHaveLength(input.length)
+    expect(new Set(sorted.map((f) => f.id)).size).toBe(input.length)
   })
 })

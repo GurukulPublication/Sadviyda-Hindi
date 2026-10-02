@@ -177,8 +177,8 @@ same way they are left out of the score.
   milestone badges.
 - **Articles (`/articles`)**: grouped by month, with search, a newest/oldest
   toggle and the language filter. Click one for the full report card — the four
-  parameter scores, what went well, what to work on, every flag grouped by
-  parameter, and Edit / Delete / Export buttons.
+  parameter scores, what went well, what to work on, every flag in the order
+  the report numbers them (F1, F2, F3 …), and Edit / Delete / Export buttons.
 - **Add Report (`/add`)**: drag and drop the PDF, check the flags in the review
   table, save.
 

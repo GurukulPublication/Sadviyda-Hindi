@@ -19,6 +19,7 @@ import {
   averageByParameter,
   cleanParameters,
   resolvedInReport,
+  sortFlagsForReading,
   weakestOf,
 } from '../lib/stats'
 import { scoreReport } from '../lib/scoring'
@@ -361,99 +362,90 @@ export default function ArticleDetail() {
             No flags at all. This one was clean.
           </p>
         ) : (
-          <div className="space-y-6">
-            {PARAMETERS.map((p) => {
-              const items = report.flags.filter((f) => f.parameter === p.key)
-              if (!items.length) return null
+          <div className="space-y-3">
+            {/*
+              One sequence, in the order the report numbers them (F1, F2, F3 …),
+              so the card can be read straight down alongside the PDF. The
+              parameter travels on each card instead of being a group heading.
+            */}
+            {sortFlagsForReading(report.flags).map((flag) => {
+              const parameter = PARAM_BY_KEY[flag.parameter]
               return (
-                <div key={p.key}>
-                  <h3 className="mb-2.5 flex items-center gap-2.5">
-                    <span
-                      className="h-3 w-3 rounded-sm"
-                      style={{ background: p.color }}
-                      aria-hidden
-                    />
-                    <span className="font-heading text-sm font-semibold">
-                      {p.label}
+                <article
+                  key={flag.id}
+                  className={`card p-5 transition-opacity ${
+                    flag.resolved ? 'opacity-60' : ''
+                  }`}
+                >
+                  <div className="mb-3 flex flex-wrap items-center gap-2.5 border-b border-border/70 pb-2.5">
+                    <span className="font-heading text-sm font-semibold text-olive">
+                      {flag.ref ?? (flag.line !== null ? `L${flag.line}` : '—')}
                     </span>
-                    <span className="text-xs text-olive">
-                      {items.length} flag{items.length === 1 ? '' : 's'}
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        className="h-2.5 w-2.5 rounded-sm"
+                        style={{ background: parameter.color }}
+                        aria-hidden
+                      />
+                      <span className="font-heading text-xs font-semibold">
+                        {parameter.label}
+                      </span>
                     </span>
-                  </h3>
+                    {flag.section && (
+                      <span className="chip bg-sand text-olive">{flag.section}</span>
+                    )}
+                    {flag.term && (
+                      <span className="chip bg-sand text-olive">{flag.term}</span>
+                    )}
 
-                  <div className="space-y-3">
-                    {items.map((flag) => (
-                      <article
-                        key={flag.id}
-                        className={`card p-5 transition-opacity ${
-                          flag.resolved ? 'opacity-60' : ''
-                        }`}
+                    <span className="ml-auto flex items-center gap-2">
+                      <span
+                        className={
+                          flag.resolved
+                            ? 'inline-block rounded-full border border-green bg-green/10 px-2.5 py-1 font-heading text-[11px] font-semibold tracking-wide text-greenDark'
+                            : flag.status === 'FLAGGED'
+                              ? 'badge-flagged'
+                              : 'badge-unsure'
+                        }
                       >
-                        <div className="flex gap-4">
-                          <span className="whitespace-nowrap font-heading text-xs text-olive">
-                            {flag.ref ?? (flag.line !== null ? `L${flag.line}` : '—')}
-                          </span>
-                          <div className="grid flex-1 gap-4 sm:grid-cols-2">
-                            <div>
-                              <span className="label text-[10px]">English</span>
-                              <p className="mt-1 text-[15px] leading-relaxed">
-                                {flag.english || <i className="text-muted">—</i>}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="label text-[10px]">
-                                {report.language}
-                              </span>
-                              <p className="deva mt-1 text-[15px] leading-relaxed">
-                                {flag.hindi || <i className="text-muted">—</i>}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-dashed border-border pt-3">
-                          <p className="aside min-w-0 flex-1 text-sm leading-relaxed">
-                            {flag.reason}
-                            {flag.section && (
-                              <span className="ml-2 chip bg-sand not-italic text-olive">
-                                {flag.section}
-                              </span>
-                            )}
-                            {flag.term && (
-                              <span className="ml-2 chip bg-sand not-italic text-olive">
-                                {flag.term}
-                              </span>
-                            )}
-                          </p>
-                          <span
-                            className={
-                              flag.resolved
-                                ? 'inline-block rounded-full border border-green bg-green/10 px-2.5 py-1 font-heading text-[11px] font-semibold tracking-wide text-greenDark'
-                                : flag.status === 'FLAGGED'
-                                  ? 'badge-flagged'
-                                  : 'badge-unsure'
-                            }
-                          >
-                            {flag.resolved ? 'FIXED' : flag.status}
-                          </span>
-
-                          {/* Ticking this off never changes the score. */}
-                          <button
-                            onClick={() => toggleResolved(flag.id)}
-                            className={`btn px-3 py-1 text-xs ${
-                              flag.resolved
-                                ? 'text-olive hover:bg-sand'
-                                : 'border border-border bg-card hover:bg-sand'
-                            }`}
-                            title="Marking a flag fixed does not change the score"
-                          >
-                            {flag.resolved ? 'Undo' : 'Mark as fixed'}
-                          </button>
-                        </div>
-                      </article>
-                    ))}
+                        {flag.resolved ? 'FIXED' : flag.status}
+                      </span>
+                      {/* Ticking this off never changes the score. */}
+                      <button
+                        onClick={() => toggleResolved(flag.id)}
+                        className={`btn px-3 py-1 text-xs ${
+                          flag.resolved
+                            ? 'text-olive hover:bg-sand'
+                            : 'border border-border bg-card hover:bg-sand'
+                        }`}
+                        title="Marking a flag fixed does not change the score"
+                      >
+                        {flag.resolved ? 'Undo' : 'Mark as fixed'}
+                      </button>
+                    </span>
                   </div>
-                </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <span className="label text-[10px]">English</span>
+                      <p className="mt-1 text-[15px] leading-relaxed">
+                        {flag.english || <i className="text-muted">—</i>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="label text-[10px]">{report.language}</span>
+                      <p className="deva mt-1 text-[15px] leading-relaxed">
+                        {flag.hindi || <i className="text-muted">—</i>}
+                      </p>
+                    </div>
+                  </div>
+
+                  {flag.reason && (
+                    <p className="mt-3 aside border-t border-dashed border-border pt-3 text-sm leading-relaxed">
+                      {flag.reason}
+                    </p>
+                  )}
+                </article>
               )
             })}
           </div>

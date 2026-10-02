@@ -4,7 +4,7 @@
  */
 
 import { PARAMETERS, PARAM_BY_KEY } from '../config/scoring'
-import type { ParameterKey, ScoredReport } from '../types'
+import type { Flag, ParameterKey, ScoredReport } from '../types'
 import { emptyCounts, round1 } from './scoring'
 
 /** Average overall score across the given reports. */
@@ -282,4 +282,42 @@ export function monthHeading(bucket: MonthBucket): string {
   const full = new Date(`${bucket.key}-01T00:00:00`)
   if (Number.isNaN(full.getTime())) return `${bucket.month} ${bucket.year}`
   return full.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+}
+
+/**
+ * Put flags in the order the report lists them: F1, F2, F3 … then the unsure
+ * items, then anything else.
+ *
+ * The reference is split into its letter and its number so F10 follows F9
+ * rather than F1, which is what plain text sorting would do. Reports written
+ * in the plain template have no reference, so those fall back to the line
+ * number. Anything without either keeps the order it arrived in.
+ */
+export function sortFlagsForReading(flags: Flag[]): Flag[] {
+  /** FLAGGED items first, then UNSURE, then clean or unknown references. */
+  const letterRank: Record<string, number> = { F: 0, U: 1, C: 2 }
+
+  return flags
+    .map((flag, index) => {
+      const match = flag.ref?.match(/^([A-Za-z]+)(\d+)$/)
+      return {
+        flag,
+        index,
+        group: match ? (letterRank[match[1].toUpperCase()] ?? 3) : 0,
+        // Sort by the number inside the reference, or by line number.
+        number: match
+          ? Number(match[2])
+          : flag.line !== null && flag.line !== undefined
+            ? flag.line
+            : Number.POSITIVE_INFINITY,
+      }
+    })
+    .sort(
+      (a, b) =>
+        a.group - b.group ||
+        a.number - b.number ||
+        // Same number, or neither has one: leave them as they came.
+        a.index - b.index,
+    )
+    .map((entry) => entry.flag)
 }
