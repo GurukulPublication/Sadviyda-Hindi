@@ -13,6 +13,7 @@ import {
 } from '../db/db'
 import { demoReports } from '../lib/demo'
 import { useApp, type LanguageFilter } from '../context/AppContext'
+import { DEFAULT_MODEL, getKey, getModel, maskKey, setKey, setModel } from '../lib/ai'
 import type { Report } from '../types'
 
 const FILTERS: LanguageFilter[] = ['All', 'Hindi', 'Gujarati']
@@ -26,6 +27,9 @@ export default function SettingsDrawer({
 }) {
   const { languageFilter, setLanguageFilter, allReports } = useApp()
   const [confirmStep, setConfirmStep] = useState(0)
+  const [keyDraft, setKeyDraft] = useState('')
+  const [modelDraft, setModelDraft] = useState(getModel())
+  const [savedKey, setSavedKey] = useState(getKey())
   const [message, setMessage] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -125,6 +129,88 @@ export default function SettingsDrawer({
                   </button>
                 ))}
               </div>
+            </section>
+
+            {/* AI */}
+            <section className="mb-8">
+              <h3 className="font-heading text-sm font-semibold mb-2">
+                AI help (optional)
+              </h3>
+              <p className="text-xs text-olive mb-2">
+                With an OpenAI key you can ask for a suggested fix on any flag,
+                and chat about your translations. Leave it empty and the
+                dashboard works exactly as before.
+              </p>
+
+              {savedKey ? (
+                <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg bg-tintGreen p-3 text-xs">
+                  <span>
+                    Key saved: <b className="font-mono">{maskKey(savedKey)}</b>
+                  </span>
+                  <button
+                    className="btn-ghost ml-auto px-3 py-1 text-xs"
+                    onClick={() => {
+                      setKey('')
+                      setSavedKey('')
+                      setKeyDraft('')
+                      setMessage('Key removed from this browser.')
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="mb-2 flex flex-col gap-2">
+                  <input
+                    type="password"
+                    className="input font-mono text-xs"
+                    placeholder="sk-..."
+                    value={keyDraft}
+                    autoComplete="off"
+                    onChange={(e) => setKeyDraft(e.target.value)}
+                  />
+                  <button
+                    className="btn-ghost"
+                    onClick={() => {
+                      setKey(keyDraft)
+                      const saved = getKey()
+                      setSavedKey(saved)
+                      setKeyDraft('')
+                      setMessage(
+                        saved
+                          ? 'Key saved in this browser only.'
+                          : 'Could not save the key — this browser is blocking storage.',
+                      )
+                    }}
+                    disabled={!keyDraft.trim()}
+                  >
+                    Save key
+                  </button>
+                </div>
+              )}
+
+              <label className="label mt-3 block">
+                Model
+                <input
+                  className="input mt-1 font-mono text-xs normal-case tracking-normal"
+                  value={modelDraft}
+                  placeholder={DEFAULT_MODEL}
+                  onChange={(e) => setModelDraft(e.target.value)}
+                  onBlur={() => {
+                    setModel(modelDraft)
+                    setModelDraft(getModel())
+                  }}
+                />
+              </label>
+
+              <p className="mt-3 rounded-lg bg-tintYellow p-3 text-xs leading-relaxed">
+                <b>Worth knowing.</b> The key is kept in this browser only — it
+                is never in the code or on GitHub. But anything running in this
+                browser could read it, so use a key with a spend limit set on
+                it, not your main one. Using these features sends the English
+                and Hindi lines concerned to OpenAI; everything else still stays
+                on this machine.
+              </p>
             </section>
 
             {/* Backup */}

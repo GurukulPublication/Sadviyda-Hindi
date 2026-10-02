@@ -23,6 +23,7 @@ import {
   weakestOf,
 } from '../lib/stats'
 import { scoreReport } from '../lib/scoring'
+import { buildFixPrompt, chat, hasKey, parseFixReply } from '../lib/ai'
 import type { Flag, Language, ParameterKey } from '../types'
 
 export default function ArticleDetail() {
@@ -31,6 +32,10 @@ export default function ArticleDetail() {
   const { allReports, loaded } = useApp()
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  /** AI suggestions, per flag: either "asking", a result, or an error. */
+  const [suggestions, setSuggestions] = useState<
+    Record<string, { busy: boolean; suggestion?: string; why?: string; error?: string }>
+  >({})
 
   const report = allReports.find((r) => String(r.id) === id)
 
@@ -105,6 +110,23 @@ export default function ArticleDetail() {
           : f,
       ),
     })
+  }
+
+  /** Ask the AI for a corrected line for one flag. */
+  async function suggestFix(flag: Flag) {
+    setSuggestions((s) => ({ ...s, [flag.id]: { busy: true } }))
+    try {
+      const reply = await chat(
+        buildFixPrompt(flag, report!.language, report!.title),
+      )
+      const { suggestion, why } = parseFixReply(reply)
+      setSuggestions((s) => ({ ...s, [flag.id]: { busy: false, suggestion, why } }))
+    } catch (err) {
+      setSuggestions((s) => ({
+        ...s,
+        [flag.id]: { busy: false, error: (err as Error).message },
+      }))
+    }
   }
 
   async function doDelete() {
@@ -411,6 +433,17 @@ export default function ArticleDetail() {
                         {flag.resolved ? 'FIXED' : flag.status}
                       </span>
                       {/* Ticking this off never changes the score. */}
+                      {/* Only offered once a key is saved in Settings. */}
+                      {hasKey() && (
+                        <button
+                          onClick={() => suggestFix(flag)}
+                          disabled={suggestions[flag.id]?.busy}
+                          className="btn border border-border bg-card px-3 py-1 text-xs hover:bg-sand disabled:opacity-50"
+                          title="Ask the AI for a corrected line"
+                        >
+                          {suggestions[flag.id]?.busy ? 'Asking…' : '✨ Suggest a fix'}
+                        </button>
+                      )}
                       <button
                         onClick={() => toggleResolved(flag.id)}
                         className={`btn px-3 py-1 text-xs ${
@@ -444,6 +477,54 @@ export default function ArticleDetail() {
                     <p className="mt-3 aside border-t border-dashed border-border pt-3 text-sm leading-relaxed">
                       {flag.reason}
                     </p>
+                  )}
+
+                  {suggestions[flag.id] && !suggestions[flag.id].busy && (
+                    <div className="mt-3 rounded-xl border border-border bg-tintBlue/50 p-4">
+                      {suggestions[flag.id].error ? (
+                        <p className="text-sm text-brand">
+                          {suggestions[flag.id].error}
+                        </p>
+                      ) : (
+                        <>
+                          <span className="label text-[10px]">
+                            AI suggestion — your call
+                          </span>
+                          <p className="deva mt-1.5 text-[15px] leading-relaxed">
+                            {suggestions[flag.id].suggestion}
+                          </p>
+                          {suggestions[flag.id].why && (
+                            <p className="mt-2 aside text-sm leading-relaxed">
+                              {suggestions[flag.id].why}
+                            </p>
+                          )}
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              className="btn-ghost px-3 py-1 text-xs"
+                              onClick={() =>
+                                navigator.clipboard
+                                  ?.writeText(suggestions[flag.id].suggestion ?? '')
+                                  .catch(() => {})
+                              }
+                            >
+                              Copy
+                            </button>
+                            <button
+                              className="btn-ghost px-3 py-1 text-xs"
+                              onClick={() =>
+                                setSuggestions((s) => {
+                                  const next = { ...s }
+                                  delete next[flag.id]
+                                  return next
+                                })
+                              }
+                            >
+                              Dismiss
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   )}
                 </article>
               )

@@ -136,6 +136,29 @@ read at all, the same table opens blank so you can type the report in by hand.
 
 ---
 
+## AI help (optional, off by default)
+
+The dashboard works fully without this. If you add an OpenAI key, two things
+appear:
+
+- **Suggest a fix** on each flag — a corrected Hindi line and a sentence on
+  what changed. It is a suggestion; the line stays yours.
+- **Ask** — a chat, bottom right, about your translations. It can see your
+  scores and the flags of the article you are looking at.
+
+Add the key in **Settings → AI help**. Some things to be clear about:
+
+- The key is kept in **this browser only**. It is never in the source, the
+  build, or the repository — this site is public, so a key committed here
+  would be readable by anyone and billed to you.
+- Anything running in the browser can read it, so use a key with a spend limit
+  set on it rather than your main one.
+- Using these features **sends the English and Hindi lines concerned to
+  OpenAI**. Everything else still stays on your machine.
+- The model defaults to a cheap one and can be changed in the same place.
+
+---
+
 ## Reading a chart closely
 
 Every chart on the Home page has an **Expand** button in its corner. It opens

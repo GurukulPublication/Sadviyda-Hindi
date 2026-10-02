@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { NavLink, Route, Routes } from 'react-router-dom'
 import { AppProvider } from './context/AppContext'
 import SettingsDrawer from './components/SettingsDrawer'
+import AskPanel from './components/AskPanel'
 import Home from './pages/Home'
 import Articles from './pages/Articles'
 import ArticleDetail from './pages/ArticleDetail'
@@ -92,6 +93,8 @@ function Shell() {
       </main>
       <Footer />
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {/* Only appears once an OpenAI key is saved in Settings. */}
+      <AskPanel />
     </div>
   )
 }
