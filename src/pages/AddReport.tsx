@@ -11,7 +11,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import FlagTable, { blankFlag } from '../components/FlagTable'
 import ScoreBar from '../components/ScoreBar'
-import { addReport } from '../db/db'
+import { addReport, allReports } from '../db/db'
 import { extractPdfText } from '../lib/pdf'
 import { parseFlagReport, parseSummaryLine } from '../lib/parser'
 import { scoreReport } from '../lib/scoring'
@@ -113,7 +113,6 @@ export default function AddReport() {
       createdAt: new Date().toISOString(),
     }
     const id = await addReport(report)
-    const { allReports } = await import('../db/db')
     setSavedIndex((await allReports()).length)
     setSavedId(id)
     setStep('saved')
